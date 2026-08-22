@@ -66,18 +66,28 @@
       font-weight: 700;
       color: #333;
     }
-    .cell input {
+    .cell-btn {
       width: 100%;
       height: 100%;
       border: none;
+      border-radius: 0;
+      padding: 0;
       text-align: center;
       font-size: 1.5rem;
       font-weight: 700;
+      font-family: inherit;
       color: #4A90E2;
       background-color: #eef5fd;
       outline: none;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
     }
-    .cell input.wrong {
+    .cell-btn.selected {
+      background-color: #cfe4fa;
+      box-shadow: inset 0 0 0 3px #4A90E2;
+    }
+    .cell-btn.wrong {
       background-color: #fdecea;
       color: #d64545;
     }
@@ -87,6 +97,22 @@
       justify-content: center;
       margin-bottom: 1rem;
     }
+    #numpad {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    #numpad button {
+      width: 3rem;
+      height: 3rem;
+      padding: 0;
+      font-size: 1.3rem;
+    }
+    #numpad button.erase {
+      background-color: #8a8f98;
+      font-size: 1.1rem;
+    }
     button {
       font-size: 1rem;
       padding: 0.6rem 1.2rem;
@@ -95,6 +121,8 @@
       background-color: #4A90E2;
       color: #fff;
       cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
     }
     button:active {
       background-color: #3a78c2;
@@ -120,6 +148,13 @@
   </header>
   <main>
     <div id="board"></div>
+    <div id="numpad">
+      <button type="button" data-value="1">1</button>
+      <button type="button" data-value="2">2</button>
+      <button type="button" data-value="3">3</button>
+      <button type="button" data-value="4">4</button>
+      <button type="button" class="erase" data-value="">Erase</button>
+    </div>
     <div class="controls">
       <button id="check-btn">Check</button>
       <button id="new-btn">New Game</button>
@@ -138,6 +173,7 @@
 
     let solution = [];
     let blanks = []; // list of {row, col}
+    let selected = null; // {row, col} of the currently selected blank cell
 
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i--) {
@@ -216,19 +252,14 @@
 
           const isBlank = blanks.some(b => b.row === r && b.col === c);
           if (isBlank) {
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.inputMode = 'numeric';
-            input.pattern = '[1-4]';
-            input.maxLength = 1;
-            input.dataset.row = r;
-            input.dataset.col = c;
-            input.addEventListener('input', () => {
-              input.value = input.value.replace(/[^1-4]/g, '').slice(0, 1);
-              input.classList.remove('wrong');
-              document.getElementById('message').textContent = '';
-            });
-            cell.appendChild(input);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'cell-btn';
+            btn.dataset.row = r;
+            btn.dataset.col = c;
+            btn.dataset.value = '';
+            btn.addEventListener('click', () => selectCell(r, c));
+            cell.appendChild(btn);
           } else {
             cell.classList.add('given');
             cell.textContent = solution[r][c];
@@ -238,22 +269,60 @@
       }
     }
 
+    function getCellBtn(row, col) {
+      return document.querySelector(`.cell-btn[data-row="${row}"][data-col="${col}"]`);
+    }
+
+    function selectCell(row, col) {
+      selected = { row, col };
+      document.querySelectorAll('.cell-btn').forEach((btn) => {
+        const isSelected = Number(btn.dataset.row) === row && Number(btn.dataset.col) === col;
+        btn.classList.toggle('selected', isSelected);
+      });
+    }
+
+    function selectNextEmptyCell(afterRow, afterCol) {
+      const ordered = blanks.slice().sort((a, b) => (a.row - b.row) || (a.col - b.col));
+      const startIndex = ordered.findIndex(b => b.row === afterRow && b.col === afterCol);
+      for (let i = 1; i <= ordered.length; i++) {
+        const candidate = ordered[(startIndex + i) % ordered.length];
+        if (getCellBtn(candidate.row, candidate.col).dataset.value === '') {
+          selectCell(candidate.row, candidate.col);
+          return;
+        }
+      }
+      selectCell(afterRow, afterCol);
+    }
+
+    function handleNumpadInput(value) {
+      if (!selected) return;
+      const btn = getCellBtn(selected.row, selected.col);
+      btn.dataset.value = value;
+      btn.textContent = value;
+      btn.classList.remove('wrong');
+      document.getElementById('message').textContent = '';
+      document.getElementById('message').className = '';
+      if (value !== '') {
+        selectNextEmptyCell(selected.row, selected.col);
+      }
+    }
+
     function checkSolution() {
       const message = document.getElementById('message');
       let allFilled = true;
       let allCorrect = true;
 
       for (const { row, col } of blanks) {
-        const input = document.querySelector(`input[data-row="${row}"][data-col="${col}"]`);
-        const value = input.value;
+        const btn = getCellBtn(row, col);
+        const value = btn.dataset.value;
         if (!value) {
           allFilled = false;
           continue;
         }
         if (Number(value) === solution[row][col]) {
-          input.classList.remove('wrong');
+          btn.classList.remove('wrong');
         } else {
-          input.classList.add('wrong');
+          btn.classList.add('wrong');
           allCorrect = false;
         }
       }
@@ -274,13 +343,20 @@
     function newGame() {
       solution = generateSolution();
       blanks = pickBlanks();
+      selected = null;
       document.getElementById('message').textContent = '';
       document.getElementById('message').className = '';
       renderBoard();
+      selectCell(blanks[0].row, blanks[0].col);
     }
 
     document.getElementById('check-btn').addEventListener('click', checkSolution);
     document.getElementById('new-btn').addEventListener('click', newGame);
+    document.getElementById('numpad').addEventListener('click', (event) => {
+      const btn = event.target.closest('button[data-value]');
+      if (!btn) return;
+      handleNumpadInput(btn.dataset.value);
+    });
 
     newGame();
 
