@@ -1,4 +1,4 @@
-const CACHE_NAME = 'html-games-v2';
+const CACHE_NAME = 'html-games-__BUILD_ID__';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -6,7 +6,8 @@ const ASSETS_TO_CACHE = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './apple-touch-icon.png'
+  './apple-touch-icon.png',
+  './pwa.js'
 ];
 
 self.addEventListener('install', (event) => {

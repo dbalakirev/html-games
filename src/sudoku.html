@@ -359,12 +359,7 @@
     });
 
     newGame();
-
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {/* ignore */});
-      });
-    }
   </script>
+  <script src="pwa.js"></script>
 </body>
 </html>

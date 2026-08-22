@@ -34,9 +34,12 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Build
+        env:
+          BUILD_ID: ${{ github.sha }}
         run: |
           mkdir -p build
           cp -r src/* build/
+          sed -i "s/__BUILD_ID__/${BUILD_ID:0:7}/" build/sw.js
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
