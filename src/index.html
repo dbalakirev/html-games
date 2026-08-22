@@ -36,6 +36,22 @@
       grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
       gap: 1.5rem;
     }
+    .game-card {
+      display: block;
+      padding: 1.25rem;
+      background-color: #fff;
+      border-radius: 0.75rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      color: inherit;
+      text-decoration: none;
+    }
+    .game-card h2 {
+      margin: 0 0 0.5rem 0;
+      color: #4A90E2;
+    }
+    .game-card p {
+      margin: 0;
+    }
   </style>
 </head>
 <body>
@@ -45,7 +61,10 @@
   </header>
   <main>
     <div class="games-grid">
-      <!-- Game items will go here -->
+      <a class="game-card" href="sudoku.html">
+        <h2>Sudoku 4x4</h2>
+        <p>A quick, super simple 4x4 sudoku with 1-2 missing numbers.</p>
+      </a>
     </div>
   </main>
 
