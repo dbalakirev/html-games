@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Sudoku 4x4 - HTML Games</title>
+  <title>Sudoku - HTML Games</title>
 
   <!-- PWA Meta Tags & Manifest -->
   <link rel="manifest" href="manifest.json">
@@ -12,7 +12,7 @@
   <!-- iOS / iPhone 5S PWA Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Sudoku 4x4">
+  <meta name="apple-mobile-web-app-title" content="Sudoku">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
   <style>
@@ -41,10 +41,22 @@
     a.back-link:hover {
       text-decoration: underline;
     }
+    .mode-select {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+    .mode-btn {
+      background-color: #dfe6ee;
+      color: #333;
+    }
+    .mode-btn.active {
+      background-color: #4A90E2;
+      color: #fff;
+    }
     #board {
       display: grid;
-      grid-template-columns: repeat(4, minmax(3.5rem, 4.5rem));
-      grid-template-rows: repeat(4, minmax(3.5rem, 4.5rem));
       gap: 2px;
       background-color: #333;
       border: 3px solid #333;
@@ -57,12 +69,8 @@
       align-items: center;
       justify-content: center;
     }
-    /* thicker borders around the 2x2 boxes */
-    .cell[data-col="1"] { border-right: 2px solid #333; }
-    .cell[data-row="1"] { border-bottom: 2px solid #333; }
-
     .cell.given {
-      font-size: 1.5rem;
+      font-size: var(--cell-font, 1.5rem);
       font-weight: 700;
       color: #333;
     }
@@ -73,7 +81,7 @@
       border-radius: 0;
       padding: 0;
       text-align: center;
-      font-size: 1.5rem;
+      font-size: var(--cell-font, 1.5rem);
       font-weight: 700;
       font-family: inherit;
       color: #4A90E2;
@@ -99,19 +107,23 @@
     }
     #numpad {
       display: flex;
+      flex-wrap: wrap;
       gap: 0.5rem;
       justify-content: center;
       margin-bottom: 1.5rem;
+      max-width: 20rem;
+      margin-left: auto;
+      margin-right: auto;
     }
     #numpad button {
-      width: 3rem;
-      height: 3rem;
+      width: 2.75rem;
+      height: 2.75rem;
       padding: 0;
-      font-size: 1.3rem;
+      font-size: 1.2rem;
     }
     #numpad button.erase {
       background-color: #8a8f98;
-      font-size: 1.1rem;
+      font-size: 1rem;
     }
     button {
       font-size: 1rem;
@@ -143,18 +155,16 @@
 <body>
   <header>
     <a class="back-link" href="index.html">&larr; Back to games</a>
-    <h1>Sudoku 4x4</h1>
-    <p>Fill in the missing numbers so each row, column and 2x2 box contains 1-4. Good luck!</p>
+    <h1>Sudoku</h1>
+    <p id="instructions">Fill in the missing numbers so each row, column and box contains 1-4. Good luck!</p>
   </header>
   <main>
-    <div id="board"></div>
-    <div id="numpad">
-      <button type="button" data-value="1">1</button>
-      <button type="button" data-value="2">2</button>
-      <button type="button" data-value="3">3</button>
-      <button type="button" data-value="4">4</button>
-      <button type="button" class="erase" data-value="">Erase</button>
+    <div class="mode-select" id="mode-select">
+      <button type="button" class="mode-btn" data-mode="4">4x4</button>
+      <button type="button" class="mode-btn" data-mode="6">6x6</button>
     </div>
+    <div id="board"></div>
+    <div id="numpad"></div>
     <div class="controls">
       <button id="check-btn">Check</button>
       <button id="new-btn">New Game</button>
@@ -163,13 +173,39 @@
   </main>
 
   <script>
-    const SIZE = 4;
-    const BASE_GRID = [
-      [1, 2, 3, 4],
-      [3, 4, 1, 2],
-      [2, 1, 4, 3],
-      [4, 3, 2, 1]
-    ];
+    const MODES = {
+      4: {
+        size: 4,
+        boxRows: 2,
+        boxCols: 2,
+        minBlanks: 1,
+        maxBlanks: 2,
+        base: [
+          [1, 2, 3, 4],
+          [3, 4, 1, 2],
+          [2, 1, 4, 3],
+          [4, 3, 2, 1]
+        ]
+      },
+      6: {
+        size: 6,
+        boxRows: 2,
+        boxCols: 3,
+        minBlanks: 3,
+        maxBlanks: 5,
+        base: [
+          [1, 2, 3, 4, 5, 6],
+          [4, 5, 6, 1, 2, 3],
+          [2, 3, 1, 5, 6, 4],
+          [5, 6, 4, 2, 3, 1],
+          [3, 1, 2, 6, 4, 5],
+          [6, 4, 5, 3, 1, 2]
+        ]
+      }
+    };
+
+    let currentMode = MODES[4];
+    let SIZE = currentMode.size;
 
     let solution = [];
     let blanks = []; // list of {row, col}
@@ -181,16 +217,6 @@
         [array[i], array[j]] = [array[j], array[i]];
       }
       return array;
-    }
-
-    function swapRows(grid, r1, r2) {
-      [grid[r1], grid[r2]] = [grid[r2], grid[r1]];
-    }
-
-    function swapCols(grid, c1, c2) {
-      for (const row of grid) {
-        [row[c1], row[c2]] = [row[c2], row[c1]];
-      }
     }
 
     function transpose(grid) {
@@ -205,31 +231,46 @@
       return result;
     }
 
-    function generateSolution() {
-      let grid = BASE_GRID.map(row => row.slice());
+    // Shuffles rows/columns while preserving the box structure: values are
+    // shuffled within each band/stack, and whole bands/stacks are reordered.
+    function permuteLines(grid, groupSize, isRow) {
+      const numGroups = SIZE / groupSize;
+      const groups = [];
+      for (let g = 0; g < numGroups; g++) {
+        const idxs = [];
+        for (let i = 0; i < groupSize; i++) idxs.push(g * groupSize + i);
+        shuffle(idxs);
+        groups.push(idxs);
+      }
+      shuffle(groups);
+      const order = groups.flat();
+      if (isRow) {
+        return order.map(i => grid[i]);
+      }
+      return grid.map(row => order.map(i => row[i]));
+    }
 
-      // relabel digits 1-4 randomly
-      const perm = shuffle([1, 2, 3, 4]);
+    function generateSolution() {
+      let grid = currentMode.base.map(row => row.slice());
+
+      // relabel digits 1-SIZE randomly
+      const perm = shuffle(Array.from({ length: SIZE }, (_, i) => i + 1));
       grid = grid.map(row => row.map(v => perm[v - 1]));
 
-      // shuffle rows within each band, and swap the two bands
-      if (Math.random() < 0.5) swapRows(grid, 0, 1);
-      if (Math.random() < 0.5) swapRows(grid, 2, 3);
-      if (Math.random() < 0.5) { swapRows(grid, 0, 2); swapRows(grid, 1, 3); }
+      grid = permuteLines(grid, currentMode.boxRows, true);
+      grid = permuteLines(grid, currentMode.boxCols, false);
 
-      // shuffle columns within each stack, and swap the two stacks
-      if (Math.random() < 0.5) swapCols(grid, 0, 1);
-      if (Math.random() < 0.5) swapCols(grid, 2, 3);
-      if (Math.random() < 0.5) { swapCols(grid, 0, 2); swapCols(grid, 1, 3); }
-
-      // optionally transpose
-      if (Math.random() < 0.5) grid = transpose(grid);
+      // transpose only preserves the box layout when boxes are square
+      if (currentMode.boxRows === currentMode.boxCols && Math.random() < 0.5) {
+        grid = transpose(grid);
+      }
 
       return grid;
     }
 
     function pickBlanks() {
-      const count = Math.random() < 0.5 ? 1 : 2;
+      const range = currentMode.maxBlanks - currentMode.minBlanks + 1;
+      const count = currentMode.minBlanks + Math.floor(Math.random() * range);
       const positions = [];
       for (let r = 0; r < SIZE; r++) {
         for (let c = 0; c < SIZE; c++) {
@@ -238,6 +279,22 @@
       }
       shuffle(positions);
       return positions.slice(0, count);
+    }
+
+    // Old Safari (iOS 12 on iPhone 5S) doesn't support the CSS aspect-ratio
+    // property, so the board is sized in JS to stay square and on-screen.
+    function sizeBoard() {
+      const board = document.getElementById('board');
+      const gap = 2;
+      const border = 3;
+      const available = Math.min(document.documentElement.clientWidth - 32, 400);
+      const totalGaps = (SIZE - 1) * gap + border * 2;
+      let cellSize = Math.floor((available - totalGaps) / SIZE);
+      cellSize = Math.max(32, Math.min(cellSize, 72));
+
+      board.style.gridTemplateColumns = `repeat(${SIZE}, ${cellSize}px)`;
+      board.style.gridTemplateRows = `repeat(${SIZE}, ${cellSize}px)`;
+      document.documentElement.style.setProperty('--cell-font', Math.round(cellSize * 0.42) + 'px');
     }
 
     function renderBoard() {
@@ -249,6 +306,12 @@
           cell.className = 'cell';
           cell.dataset.row = r;
           cell.dataset.col = c;
+
+          // thicker borders between boxes
+          const isLastCol = (c + 1) % currentMode.boxCols === 0 && c !== SIZE - 1;
+          const isLastRow = (r + 1) % currentMode.boxRows === 0 && r !== SIZE - 1;
+          if (isLastCol) cell.style.borderRight = '2px solid #333';
+          if (isLastRow) cell.style.borderBottom = '2px solid #333';
 
           const isBlank = blanks.some(b => b.row === r && b.col === c);
           if (isBlank) {
@@ -267,6 +330,25 @@
           board.appendChild(cell);
         }
       }
+      sizeBoard();
+    }
+
+    function renderNumpad() {
+      const numpad = document.getElementById('numpad');
+      numpad.innerHTML = '';
+      for (let n = 1; n <= SIZE; n++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.value = String(n);
+        btn.textContent = String(n);
+        numpad.appendChild(btn);
+      }
+      const eraseBtn = document.createElement('button');
+      eraseBtn.type = 'button';
+      eraseBtn.className = 'erase';
+      eraseBtn.dataset.value = '';
+      eraseBtn.textContent = 'Erase';
+      numpad.appendChild(eraseBtn);
     }
 
     function getCellBtn(row, col) {
@@ -340,12 +422,28 @@
       }
     }
 
+    function updateModeUI() {
+      document.querySelectorAll('.mode-btn').forEach((btn) => {
+        btn.classList.toggle('active', Number(btn.dataset.mode) === SIZE);
+      });
+      document.getElementById('instructions').textContent =
+        `Fill in the missing numbers so each row, column and box contains 1-${SIZE}. Good luck!`;
+    }
+
+    function setMode(size) {
+      currentMode = MODES[size];
+      SIZE = currentMode.size;
+      updateModeUI();
+      newGame();
+    }
+
     function newGame() {
       solution = generateSolution();
       blanks = pickBlanks();
       selected = null;
       document.getElementById('message').textContent = '';
       document.getElementById('message').className = '';
+      renderNumpad();
       renderBoard();
       selectCell(blanks[0].row, blanks[0].col);
     }
@@ -357,7 +455,15 @@
       if (!btn) return;
       handleNumpadInput(btn.dataset.value);
     });
+    document.getElementById('mode-select').addEventListener('click', (event) => {
+      const btn = event.target.closest('.mode-btn');
+      if (!btn) return;
+      const size = Number(btn.dataset.mode);
+      if (size !== SIZE) setMode(size);
+    });
+    window.addEventListener('resize', sizeBoard);
 
+    updateModeUI();
     newGame();
   </script>
   <script src="pwa.js"></script>
