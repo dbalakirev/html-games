@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Tic Tac Toe - HTML Games</title>
+
+  <!-- PWA Meta Tags & Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4A90E2">
+
+  <!-- iOS / iPhone 5S PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Tic Tac Toe">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: calc(1rem + env(safe-area-inset-top, 0px)) calc(0.75rem + env(safe-area-inset-right, 0px)) calc(1rem + env(safe-area-inset-bottom, 0px)) calc(0.75rem + env(safe-area-inset-left, 0px));
+      background-color: #fff4e0;
+      color: #333;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      overflow-x: hidden;
+    }
+    header {
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    h1 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1.6rem;
+      color: #ff6f61;
+    }
+    a.back-link {
+      display: inline-block;
+      margin-bottom: 0.5rem;
+      color: #4A90E2;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #scoreboard {
+      display: flex;
+      width: 100%;
+      max-width: 320px;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .score-item {
+      flex: 1;
+      border-radius: 0.75rem;
+      padding: 0.5rem 0.25rem;
+      text-align: center;
+      font-weight: 700;
+    }
+    .score-x {
+      background-color: #dceeff;
+      color: #1f6fd6;
+    }
+    .score-o {
+      background-color: #ffe1e6;
+      color: #e0455f;
+    }
+    .score-draw {
+      background-color: #fff2c2;
+      color: #a37a00;
+    }
+    .score-label {
+      display: block;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+    .score-value {
+      display: block;
+      font-size: 1.4rem;
+    }
+
+    #turn-indicator {
+      font-size: 1.2rem;
+      font-weight: 700;
+      min-height: 1.6rem;
+      margin: 0 0 0.75rem 0;
+      text-align: center;
+    }
+    #turn-indicator.turn-x { color: #1f6fd6; }
+    #turn-indicator.turn-o { color: #e0455f; }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(90px, 100px));
+      grid-template-rows: repeat(3, minmax(90px, 100px));
+      gap: 6px;
+      background-color: #333;
+      border: 3px solid #333;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      width: fit-content;
+      margin: 0 auto 1rem auto;
+    }
+    .cell-btn {
+      width: 100%;
+      height: 100%;
+      border: none;
+      padding: 0;
+      margin: 0;
+      background-color: #ffffff;
+      font-size: 3.2rem;
+      font-weight: 800;
+      font-family: inherit;
+      line-height: 1;
+      outline: none;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cell-btn.mark-x { color: #1f6fd6; }
+    .cell-btn.mark-o { color: #e0455f; }
+    .cell-btn.win-cell {
+      background-color: #fff2a8;
+    }
+    .cell-btn.pop {
+      animation: pop 0.2s ease-out;
+    }
+    @keyframes pop {
+      0% { transform: scale(0.3); opacity: 0.3; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes winPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+    .cell-btn.win-cell {
+      animation: winPulse 0.6s ease-in-out 2;
+    }
+
+    #message {
+      text-align: center;
+      min-height: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 0.75rem 0;
+    }
+    #message .result-symbol {
+      display: block;
+      font-size: 3rem;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+    #message .result-symbol.mark-x { color: #1f6fd6; }
+    #message .result-symbol.mark-o { color: #e0455f; }
+    #message .result-text {
+      display: block;
+      font-size: 1.3rem;
+    }
+    #message .result-text.win { color: #2e8b57; }
+    #message .result-text.draw { color: #a37a00; }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+    }
+    button#new-btn {
+      font-size: 1.1rem;
+      font-weight: 700;
+      padding: 0.75rem 1.75rem;
+      border: none;
+      border-radius: 999px;
+      background-color: #4ac16d;
+      color: #fff;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    button#new-btn:active {
+      background-color: #3a9c56;
+    }
+
+    #confetti-layer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 999;
+    }
+    .confetti-piece {
+      position: absolute;
+      top: -10px;
+      width: 10px;
+      height: 10px;
+      opacity: 0.9;
+      animation-name: confetti-fall;
+      animation-timing-function: linear;
+      animation-fill-mode: forwards;
+    }
+    @keyframes confetti-fall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(360deg); opacity: 0.9; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="back-link" href="index.html">&larr; Back to games</a>
+    <h1>Tic Tac Toe</h1>
+  </header>
+  <main>
+    <div id="scoreboard">
+      <div class="score-item score-x">
+        <span class="score-label">Player 1 (X)</span>
+        <span class="score-value" id="score-x">0</span>
+      </div>
+      <div class="score-item score-draw">
+        <span class="score-label">Draws</span>
+        <span class="score-value" id="score-draws">0</span>
+      </div>
+      <div class="score-item score-o">
+        <span class="score-label">Player 2 (O)</span>
+        <span class="score-value" id="score-o">0</span>
+      </div>
+    </div>
+
+    <p id="turn-indicator"></p>
+
+    <div id="board"></div>
+
+    <p id="message"></p>
+
+    <div class="controls">
+      <button type="button" id="new-btn">New Game</button>
+    </div>
+  </main>
+
+  <div id="confetti-layer"></div>
+
+  <script>
+    var WIN_LINES = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
+    ];
+    var CONFETTI_COLORS = ['#ff6f61', '#4ac16d', '#4A90E2', '#ffd23f', '#e0455f', '#8e5ff5'];
+
+    var board = [];
+    var currentPlayer = 'X';
+    var gameOver = false;
+    var scores = { X: 0, O: 0, draws: 0 };
+
+    function getBoardEl() {
+      return document.getElementById('board');
+    }
+
+    function renderBoard() {
+      var boardEl = getBoardEl();
+      boardEl.innerHTML = '';
+      for (var i = 0; i < 9; i++) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cell-btn';
+        btn.setAttribute('data-index', i);
+        btn.setAttribute('aria-label', 'Cell ' + (i + 1));
+        (function (index) {
+          btn.addEventListener('click', function () {
+            handleCellPlay(index);
+          });
+          btn.addEventListener('touchstart', function (event) {
+            event.preventDefault();
+            handleCellPlay(index);
+          });
+        })(i);
+        boardEl.appendChild(btn);
+      }
+    }
+
+    function getCellBtn(index) {
+      return getBoardEl().querySelector('.cell-btn[data-index="' + index + '"]');
+    }
+
+    function updateTurnIndicator() {
+      var el = document.getElementById('turn-indicator');
+      el.className = currentPlayer === 'X' ? 'turn-x' : 'turn-o';
+      el.textContent = (currentPlayer === 'X' ? "Player 1's turn (X)" : "Player 2's turn (O)");
+    }
+
+    function checkWin() {
+      for (var i = 0; i < WIN_LINES.length; i++) {
+        var line = WIN_LINES[i];
+        var a = board[line[0]], b = board[line[1]], c = board[line[2]];
+        if (a && a === b && a === c) {
+          return { winner: a, line: line };
+        }
+      }
+      return null;
+    }
+
+    function isBoardFull() {
+      for (var i = 0; i < 9; i++) {
+        if (!board[i]) return false;
+      }
+      return true;
+    }
+
+    function handleCellPlay(index) {
+      if (gameOver) return;
+      if (board[index]) return;
+
+      board[index] = currentPlayer;
+      var btn = getCellBtn(index);
+      btn.textContent = currentPlayer;
+      btn.classList.add(currentPlayer === 'X' ? 'mark-x' : 'mark-o');
+      btn.classList.add('pop');
+
+      var result = checkWin();
+      if (result) {
+        gameOver = true;
+        highlightWin(result.line);
+        scores[result.winner] += 1;
+        updateScoreboard();
+        showResult(result.winner, false);
+        launchConfetti();
+        return;
+      }
+
+      if (isBoardFull()) {
+        gameOver = true;
+        scores.draws += 1;
+        updateScoreboard();
+        showResult(null, true);
+        return;
+      }
+
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      updateTurnIndicator();
+    }
+
+    function highlightWin(line) {
+      for (var i = 0; i < line.length; i++) {
+        getCellBtn(line[i]).classList.add('win-cell');
+      }
+    }
+
+    function showResult(winner, draw) {
+      var message = document.getElementById('message');
+      var turnIndicator = document.getElementById('turn-indicator');
+      turnIndicator.textContent = '';
+      turnIndicator.className = '';
+
+      if (draw) {
+        message.innerHTML =
+          '<span class="result-symbol">🤝</span>' +
+          '<span class="result-text draw">It\'s a draw!</span>';
+      } else {
+        var markClass = winner === 'X' ? 'mark-x' : 'mark-o';
+        var playerLabel = winner === 'X' ? 'Player 1' : 'Player 2';
+        message.innerHTML =
+          '<span class="result-symbol ' + markClass + '">' + winner + '</span>' +
+          '<span class="result-text win">' + playerLabel + ' (' + winner + ') wins!</span>';
+      }
+    }
+
+    function updateScoreboard() {
+      document.getElementById('score-x').textContent = scores.X;
+      document.getElementById('score-o').textContent = scores.O;
+      document.getElementById('score-draws').textContent = scores.draws;
+    }
+
+    function launchConfetti() {
+      var layer = document.getElementById('confetti-layer');
+      var pieceCount = 30;
+      for (var i = 0; i < pieceCount; i++) {
+        var piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left = (Math.random() * 100) + 'vw';
+        piece.style.backgroundColor = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+        piece.style.borderRadius = (Math.random() < 0.5 ? '50%' : '2px');
+        var duration = 1.4 + Math.random() * 1.2;
+        piece.style.animationDuration = duration + 's';
+        piece.style.animationDelay = (Math.random() * 0.4) + 's';
+        layer.appendChild(piece);
+        (function (el, totalDelay) {
+          setTimeout(function () {
+            if (el.parentNode) el.parentNode.removeChild(el);
+          }, totalDelay);
+        })(piece, (duration + 0.5) * 1000);
+      }
+    }
+
+    function newGame() {
+      board = [null, null, null, null, null, null, null, null, null];
+      currentPlayer = 'X';
+      gameOver = false;
+      document.getElementById('message').innerHTML = '';
+      renderBoard();
+      updateTurnIndicator();
+    }
+
+    document.getElementById('new-btn').addEventListener('click', newGame);
+    document.getElementById('new-btn').addEventListener('touchstart', function (event) {
+      event.preventDefault();
+      newGame();
+    });
+
+    newGame();
+  </script>
+  <script src="pwa.js"></script>
+</body>
+</html>
