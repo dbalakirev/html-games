@@ -85,6 +85,7 @@ src/
   index.html      Menu — a card grid linking to each game
   sudoku.html     Sudoku, 4x4 and 6x6, procedurally generated + on-screen numpad
   tictac.html     Tic Tac Toe, two players on one device, scoreboard + confetti
+  arkanoid.html   Brick breaker on a 2D canvas, one-finger paddle, endless levels
   pwa.js          Service-worker registration and auto-reload on update
   sw.js           Cache-first service worker with a build-stamped cache name
   manifest.json   PWA manifest (standalone, theme #4A90E2)

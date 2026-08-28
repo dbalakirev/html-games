@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Arkanoid - HTML Games</title>
+
+  <!-- PWA Meta Tags & Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4A90E2">
+
+  <!-- iOS / iPhone 5S PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Arkanoid">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: calc(0.5rem + env(safe-area-inset-top, 0px)) calc(0.75rem + env(safe-area-inset-right, 0px)) calc(0.5rem + env(safe-area-inset-bottom, 0px)) calc(0.75rem + env(safe-area-inset-left, 0px));
+      background-color: #eef3fb;
+      color: #333;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      overflow-x: hidden;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 0.4rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: #4A90E2;
+    }
+    a.back-link {
+      display: inline-block;
+      margin-bottom: 0.25rem;
+      color: #4A90E2;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* No flex `gap` anywhere: it needs Safari 14.1, we target Safari 12. */
+    #hud {
+      display: flex;
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto 0.4rem auto;
+    }
+    .hud-item {
+      flex: 1;
+      text-align: center;
+      padding: 0.3rem 0.15rem;
+      background-color: #fff;
+      border-radius: 0.6rem;
+      margin-right: 0.4rem;
+    }
+    .hud-item:last-child {
+      margin-right: 0;
+    }
+    .hud-label {
+      display: block;
+      font-size: 0.65rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #7b8794;
+    }
+    .hud-value {
+      display: block;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #2d3a4a;
+    }
+    #lives-value {
+      color: #ff6f61;
+      letter-spacing: 0.1em;
+    }
+
+    #stage {
+      width: 100%;
+      text-align: center;
+    }
+    #game {
+      display: block;
+      margin: 0 auto;
+      background-color: #1d2233;
+      border-radius: 0.6rem;
+      /* Progressive enhancement: iOS 12 ignores this, so touchmove also
+         calls preventDefault() to stop the page scrolling under the finger. */
+      touch-action: none;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      margin-top: 0.5rem;
+    }
+    button#new-btn {
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 0.6rem 1.5rem;
+      border: none;
+      border-radius: 999px;
+      background-color: #4ac16d;
+      color: #fff;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    button#new-btn:active {
+      background-color: #3a9c56;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="back-link" href="index.html">&larr; Back to games</a>
+    <h1>Arkanoid</h1>
+  </header>
+  <main>
+    <div id="hud">
+      <div class="hud-item">
+        <span class="hud-label">Score</span>
+        <span class="hud-value" id="score-value">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Lives</span>
+        <span class="hud-value" id="lives-value">●●●</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Level</span>
+        <span class="hud-value" id="level-value">1</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Best</span>
+        <span class="hud-value" id="best-value">0</span>
+      </div>
+    </div>
+
+    <div id="stage">
+      <canvas id="game"></canvas>
+    </div>
+
+    <div class="controls">
+      <button type="button" id="new-btn">New Game</button>
+    </div>
+  </main>
+
+  <script>
+    var BRICK_COLORS = ['#ff6f61', '#ffa14a', '#ffd23f', '#4ac16d', '#4A90E2', '#8e5ff5', '#e0455f'];
+    var BRICK_COLS = 7;
+    var MAX_BOUNCE_ANGLE = 1.0472; /* 60 degrees, in radians */
+    var STORAGE_KEY = 'arkanoid-best';
+
+    var canvas = document.getElementById('game');
+    var ctx = canvas.getContext('2d');
+
+    /* Logical playfield size in CSS pixels. The backing store is this
+       multiplied by the (capped) device pixel ratio. */
+    var W = 0;
+    var H = 0;
+
+    var state = 'ready'; /* ready | playing | over */
+    var score = 0;
+    var lives = 3;
+    var level = 1;
+    var best = loadBest();
+
+    var bricks = [];
+    var bricksLeft = 0;
+    var paddle = { x: 0, y: 0, w: 0, h: 0 };
+    var ball = { x: 0, y: 0, dx: 0, dy: -1, r: 0, speed: 0 };
+
+    var rafId = 0;
+    var lastTs = 0;
+    var running = false;
+
+    function loadBest() {
+      try {
+        var raw = window.localStorage.getItem(STORAGE_KEY);
+        var value = parseInt(raw, 10);
+        return isNaN(value) ? 0 : value;
+      } catch (e) {
+        return 0; /* private mode, storage disabled */
+      }
+    }
+
+    function saveBest() {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, String(best));
+      } catch (e) {
+        /* ignore, best score just will not persist */
+      }
+    }
+
+    /* ---------- sizing ---------- */
+
+    function sizeCanvas() {
+      var docEl = document.documentElement;
+      var bodyStyle = window.getComputedStyle(document.body);
+      var padBottom = parseFloat(bodyStyle.paddingBottom) || 0;
+
+      var stageTop = document.getElementById('stage').getBoundingClientRect().top;
+      var controlsH = document.querySelector('.controls').offsetHeight;
+
+      var availW = Math.min(docEl.clientWidth - 24, 420);
+      var availH = docEl.clientHeight - stageTop - controlsH - padBottom - 16;
+
+      W = Math.max(240, Math.floor(availW));
+      H = Math.floor(Math.min(Math.max(availH, 260), W * 1.8));
+
+      /* Cap the pixel ratio: the 5S is 2x, and filling more than that
+         wastes A7 cycles for no visible gain. */
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      canvas.width = Math.floor(W * dpr);
+      canvas.height = Math.floor(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    /* ---------- level setup ---------- */
+
+    function buildLevel() {
+      var rows = Math.min(3 + level, 7);
+      var margin = Math.round(W * 0.025);
+      var gap = Math.max(3, Math.round(W * 0.012));
+      var top = Math.round(H * 0.08);
+      var bw = (W - margin * 2 - gap * (BRICK_COLS - 1)) / BRICK_COLS;
+      var bh = Math.max(12, Math.round(H * 0.035));
+
+      bricks = [];
+      for (var r = 0; r < rows; r++) {
+        for (var c = 0; c < BRICK_COLS; c++) {
+          bricks.push({
+            x: margin + c * (bw + gap),
+            y: top + r * (bh + gap),
+            w: bw,
+            h: bh,
+            color: BRICK_COLORS[r % BRICK_COLORS.length],
+            points: (rows - r) * 10,
+            alive: true
+          });
+        }
+      }
+      bricksLeft = bricks.length;
+    }
+
+    function resetPaddleAndBall() {
+      paddle.w = Math.max(52, Math.round(W * 0.22));
+      paddle.h = Math.max(10, Math.round(H * 0.022));
+      paddle.y = H - paddle.h - Math.round(H * 0.06);
+      paddle.x = (W - paddle.w) / 2;
+
+      ball.r = Math.max(4, Math.round(W * 0.017));
+      ball.speed = H * 0.72 * (1 + (level - 1) * 0.1);
+      ball.dx = 0;
+      ball.dy = -1;
+      placeBallOnPaddle();
+    }
+
+    function placeBallOnPaddle() {
+      ball.x = paddle.x + paddle.w / 2;
+      ball.y = paddle.y - ball.r - 1;
+    }
+
+    function launchBall() {
+      /* Slight random lean so every life does not play out identically. */
+      var angle = (Math.random() * 0.5 - 0.25);
+      ball.dx = Math.sin(angle);
+      ball.dy = -Math.cos(angle);
+      state = 'playing';
+    }
+
+    /* ---------- game flow ---------- */
+
+    function newGame() {
+      score = 0;
+      lives = 3;
+      level = 1;
+      state = 'ready';
+      sizeCanvas();
+      buildLevel();
+      resetPaddleAndBall();
+      updateHud();
+      draw();
+      startLoop();
+    }
+
+    function nextLevel() {
+      level += 1;
+      state = 'ready';
+      buildLevel();
+      resetPaddleAndBall();
+      updateHud();
+    }
+
+    function loseLife() {
+      lives -= 1;
+      updateHud();
+      if (lives <= 0) {
+        state = 'over';
+        if (score > best) {
+          best = score;
+          saveBest();
+          updateHud();
+        }
+        return;
+      }
+      state = 'ready';
+      resetPaddleAndBall();
+    }
+
+    function updateHud() {
+      document.getElementById('score-value').textContent = score;
+      document.getElementById('level-value').textContent = level;
+      document.getElementById('best-value').textContent = best;
+      document.getElementById('lives-value').textContent =
+        lives > 0 ? new Array(lives + 1).join('●') : '–';
+    }
+
+    /* ---------- physics ---------- */
+
+    function update(dt) {
+      if (state !== 'playing') {
+        placeBallOnPaddle();
+        return;
+      }
+
+      /* Sub-step so a fast ball cannot tunnel through a brick or the paddle. */
+      var remaining = ball.speed * dt;
+      var maxStep = ball.r;
+      while (remaining > 0 && state === 'playing') {
+        var step = Math.min(remaining, maxStep);
+        remaining -= step;
+        ball.x += ball.dx * step;
+        ball.y += ball.dy * step;
+        collideWalls();
+        collidePaddle();
+        collideBricks();
+      }
+    }
+
+    function collideWalls() {
+      if (ball.x - ball.r < 0) {
+        ball.x = ball.r;
+        ball.dx = -ball.dx;
+      } else if (ball.x + ball.r > W) {
+        ball.x = W - ball.r;
+        ball.dx = -ball.dx;
+      }
+      if (ball.y - ball.r < 0) {
+        ball.y = ball.r;
+        ball.dy = -ball.dy;
+      } else if (ball.y - ball.r > H) {
+        loseLife();
+      }
+    }
+
+    function collidePaddle() {
+      if (ball.dy <= 0) return;
+      if (ball.y + ball.r < paddle.y) return;
+      if (ball.y - ball.r > paddle.y + paddle.h) return;
+      if (ball.x + ball.r < paddle.x) return;
+      if (ball.x - ball.r > paddle.x + paddle.w) return;
+
+      /* Where on the paddle it landed decides the outgoing angle,
+         which is what makes the paddle feel like a steering tool. */
+      var hit = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+      if (hit > 1) hit = 1;
+      if (hit < -1) hit = -1;
+      var angle = hit * MAX_BOUNCE_ANGLE;
+      ball.dx = Math.sin(angle);
+      ball.dy = -Math.cos(angle);
+      ball.y = paddle.y - ball.r;
+    }
+
+    function collideBricks() {
+      for (var i = 0; i < bricks.length; i++) {
+        var b = bricks[i];
+        if (!b.alive) continue;
+        if (ball.x + ball.r < b.x) continue;
+        if (ball.x - ball.r > b.x + b.w) continue;
+        if (ball.y + ball.r < b.y) continue;
+        if (ball.y - ball.r > b.y + b.h) continue;
+
+        /* Bounce off whichever face we are least deeply into. */
+        var overlapLeft = ball.x + ball.r - b.x;
+        var overlapRight = b.x + b.w - (ball.x - ball.r);
+        var overlapTop = ball.y + ball.r - b.y;
+        var overlapBottom = b.y + b.h - (ball.y - ball.r);
+        var overlapX = Math.min(overlapLeft, overlapRight);
+        var overlapY = Math.min(overlapTop, overlapBottom);
+
+        if (overlapX < overlapY) {
+          ball.dx = -ball.dx;
+          ball.x += (overlapLeft < overlapRight) ? -overlapX : overlapX;
+        } else {
+          ball.dy = -ball.dy;
+          ball.y += (overlapTop < overlapBottom) ? -overlapY : overlapY;
+        }
+
+        b.alive = false;
+        bricksLeft -= 1;
+        score += b.points;
+        if (score > best) {
+          best = score;
+          saveBest();
+        }
+        updateHud();
+
+        if (bricksLeft === 0) nextLevel();
+        return; /* one brick per sub-step keeps the bounce predictable */
+      }
+    }
+
+    /* ---------- rendering ---------- */
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = '#1d2233';
+      ctx.fillRect(0, 0, W, H);
+
+      for (var i = 0; i < bricks.length; i++) {
+        var b = bricks[i];
+        if (!b.alive) continue;
+        ctx.fillStyle = b.color;
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+      }
+
+      ctx.fillStyle = '#4ac16d';
+      ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+
+      ctx.fillStyle = '#ffd23f';
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (state === 'ready') {
+        drawOverlay(['Level ' + level, 'Tap to start'], false);
+      } else if (state === 'over') {
+        drawOverlay(['Game Over', 'Score ' + score, 'Tap to play again'], true);
+      }
+    }
+
+    function drawOverlay(lines, dim) {
+      if (dim) {
+        ctx.fillStyle = 'rgba(29, 34, 51, 0.78)';
+        ctx.fillRect(0, 0, W, H);
+      }
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      var baseSize = Math.max(14, Math.round(W * 0.062));
+      var startY = H / 2 - ((lines.length - 1) * baseSize * 1.5) / 2;
+      for (var i = 0; i < lines.length; i++) {
+        var isTitle = (i === 0);
+        ctx.font = (isTitle ? '700 ' : '400 ') +
+          (isTitle ? Math.round(baseSize * 1.35) : baseSize) + 'px ' +
+          '-apple-system, BlinkMacSystemFont, system-ui, sans-serif';
+        ctx.fillStyle = isTitle ? '#ffd23f' : '#eef3fb';
+        ctx.fillText(lines[i], W / 2, startY + i * baseSize * 1.5);
+      }
+    }
+
+    /* ---------- loop ---------- */
+
+    function loop(ts) {
+      if (!running) return;
+      if (lastTs === 0) lastTs = ts;
+      var dt = (ts - lastTs) / 1000;
+      lastTs = ts;
+      /* Clamp: after backgrounding, dt can be huge and the ball would jump. */
+      if (dt > 0.05) dt = 0.05;
+      update(dt);
+      draw();
+      rafId = window.requestAnimationFrame(loop);
+    }
+
+    function startLoop() {
+      if (running) return;
+      running = true;
+      lastTs = 0;
+      rafId = window.requestAnimationFrame(loop);
+    }
+
+    function stopLoop() {
+      running = false;
+      if (rafId) window.cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+
+    /* ---------- input ---------- */
+
+    function movePaddleTo(clientX) {
+      var rect = canvas.getBoundingClientRect();
+      var x = clientX - rect.left;
+      paddle.x = x - paddle.w / 2;
+      if (paddle.x < 0) paddle.x = 0;
+      if (paddle.x > W - paddle.w) paddle.x = W - paddle.w;
+    }
+
+    function handlePress(clientX) {
+      movePaddleTo(clientX);
+      if (state === 'ready') {
+        launchBall();
+      } else if (state === 'over') {
+        newGame();
+      }
+    }
+
+    canvas.addEventListener('touchstart', function (event) {
+      event.preventDefault();
+      handlePress(event.changedTouches[0].clientX);
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', function (event) {
+      /* Required on iOS 12, where `touch-action: none` is not honoured. */
+      event.preventDefault();
+      movePaddleTo(event.changedTouches[0].clientX);
+    }, { passive: false });
+
+    canvas.addEventListener('mousedown', function (event) {
+      handlePress(event.clientX);
+    });
+
+    canvas.addEventListener('mousemove', function (event) {
+      movePaddleTo(event.clientX);
+    });
+
+    document.getElementById('new-btn').addEventListener('click', newGame);
+    document.getElementById('new-btn').addEventListener('touchstart', function (event) {
+      event.preventDefault();
+      newGame();
+    });
+
+    /* Do not burn battery animating a game nobody can see. */
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') {
+        stopLoop();
+      } else {
+        lastTs = 0;
+        startLoop();
+      }
+    });
+
+    /* Orientation changes rebuild the playfield, so hand the ball back
+       to the paddle rather than teleporting it somewhere unfair. */
+    function handleResize() {
+      sizeCanvas();
+      buildLevel();
+      resetPaddleAndBall();
+      /* Bricks are rebuilt, so the level restarts; score and lives stand. */
+      if (state === 'playing') state = 'ready';
+      draw();
+    }
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    newGame();
+  </script>
+  <script src="pwa.js"></script>
+</body>
+</html>
