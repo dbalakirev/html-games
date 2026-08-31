@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Pet Care - HTML Games</title>
+
+  <!-- PWA Meta Tags & Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4A90E2">
+
+  <!-- iOS / iPhone 5S PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Pet Care">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: calc(1rem + env(safe-area-inset-top, 0px)) calc(0.75rem + env(safe-area-inset-right, 0px)) calc(1rem + env(safe-area-inset-bottom, 0px)) calc(0.75rem + env(safe-area-inset-left, 0px));
+      background-color: #f2fbf4;
+      color: #333;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      overflow-x: hidden;
+    }
+    header {
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    h1 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1.6rem;
+      color: #3aa06e;
+    }
+    a.back-link {
+      display: inline-block;
+      margin-bottom: 0.5rem;
+      color: #4A90E2;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .screen {
+      width: 100%;
+      max-width: 320px;
+    }
+
+    /* ---------- pet select screen ---------- */
+    #screen-select h2 {
+      text-align: center;
+      font-size: 1.1rem;
+      margin: 0 0 1rem 0;
+    }
+    .pet-choice-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .pet-choice-btn {
+      background-color: #fff;
+      border: 2px solid #dbeee0;
+      border-radius: 1rem;
+      padding: 1.5rem 0.5rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #333;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .pet-choice-btn:active {
+      background-color: #eafbee;
+    }
+    .pet-choice-emoji {
+      display: block;
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ---------- day screen ---------- */
+    .stats-bars {
+      width: 100%;
+      margin-bottom: 0.75rem;
+    }
+    .stat-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.4rem;
+    }
+    .stat-row > *:not(:last-child) {
+      margin-right: 0.5rem;
+    }
+    .stat-icon {
+      font-size: 1.1rem;
+      width: 1.4rem;
+      text-align: center;
+    }
+    .bar-track {
+      flex: 1;
+      height: 14px;
+      background-color: #e6ede8;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.3s ease-out;
+    }
+    .bar-fill.bar-low { background-color: #e0455f; }
+    .bar-fill.bar-mid { background-color: #ffb64a; }
+    .bar-fill.bar-high { background-color: #4ac16d; }
+    .stat-value {
+      width: 2.2rem;
+      text-align: right;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #555;
+    }
+
+    .sick-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #ffe1e1;
+      border-radius: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.85rem;
+    }
+    .sick-banner > *:not(:last-child) {
+      margin-right: 0.5rem;
+    }
+
+    .pet-display {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 140px;
+      margin-bottom: 0.5rem;
+    }
+    .pet-emoji {
+      font-size: 5rem;
+      line-height: 1;
+      animation: idle-bounce 2.4s ease-in-out infinite;
+    }
+    .pet-emoji.mood-happy {
+      animation: idle-bounce 1s ease-in-out infinite;
+    }
+    .pet-emoji.mood-sleepy {
+      opacity: 0.7;
+      animation: sleepy-droop 3s ease-in-out infinite;
+    }
+    .pet-emoji.mood-sick {
+      filter: grayscale(0.6);
+      animation: sick-wobble 0.6s ease-in-out infinite;
+    }
+    @keyframes idle-bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    @keyframes sleepy-droop {
+      0%, 100% { transform: rotate(0deg) translateY(0); }
+      50% { transform: rotate(4deg) translateY(4px); }
+    }
+    @keyframes sick-wobble {
+      0%, 100% { transform: rotate(-3deg); }
+      50% { transform: rotate(3deg); }
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+    .action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #fff;
+      border: 2px solid #dbeee0;
+      border-radius: 0.9rem;
+      padding: 0.9rem 0.4rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #333;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .action-btn:active {
+      background-color: #eafbee;
+    }
+    .action-icon {
+      font-size: 1.8rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .day-footer {
+      font-size: 0.75rem;
+      color: #666;
+      text-align: center;
+      margin-top: 0.6rem;
+    }
+    .change-pet-link {
+      display: block;
+      text-align: center;
+      margin-top: 0.4rem;
+      font-size: 0.8rem;
+      color: #4A90E2;
+      text-decoration: none;
+    }
+
+    /* ---------- minigame panel (shared) ---------- */
+    .minigame-panel {
+      width: 100%;
+      background-color: #fff;
+      border: 2px solid #dbeee0;
+      border-radius: 0.9rem;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .minigame-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    .minigame-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #3aa06e;
+    }
+    .cancel-btn {
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      color: #999;
+      padding: 0.25rem 0.4rem;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .minigame-hint {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #555;
+      margin: 0.4rem 0;
+    }
+    .primary-btn {
+      display: block;
+      width: 100%;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 0.7rem;
+      border: none;
+      border-radius: 999px;
+      background-color: #4ac16d;
+      color: #fff;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .primary-btn:active {
+      background-color: #3a9c56;
+    }
+    .secondary-btn {
+      display: block;
+      width: 100%;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 0.6rem;
+      border: 2px solid #ddd;
+      border-radius: 999px;
+      background-color: #fff;
+      color: #555;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    /* ---------- feed minigame ---------- */
+    .feed-track {
+      position: relative;
+      height: 46px;
+      background-color: #f6faf7;
+      border: 2px solid #dbeee0;
+      border-radius: 999px;
+      margin: 0.5rem 0;
+      overflow: hidden;
+    }
+    .feed-zone {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      background-color: rgba(58, 160, 110, 0.3);
+    }
+    .feed-marker {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.6rem;
+    }
+    .feed-marker.catch-hit {
+      animation: catch-flash-hit 0.4s ease-out;
+    }
+    .feed-marker.catch-miss {
+      animation: catch-flash-miss 0.4s ease-out;
+    }
+    @keyframes catch-flash-hit {
+      0% { transform: translate(-50%, -50%) scale(1.6); }
+      100% { transform: translate(-50%, -50%) scale(1); }
+    }
+    @keyframes catch-flash-miss {
+      0%, 100% { transform: translate(-50%, -50%); }
+      25% { transform: translate(-60%, -50%); }
+      75% { transform: translate(-40%, -50%); }
+    }
+
+    /* ---------- train / medicine simon buttons ---------- */
+    .simon-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+      margin: 0.5rem 0;
+    }
+    .simon-btn {
+      font-size: 2.4rem;
+      padding: 1rem 0;
+      border: 2px solid #dbeee0;
+      border-radius: 0.9rem;
+      background-color: #f6faf7;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .simon-btn:disabled {
+      opacity: 0.85;
+    }
+    .simon-btn.lit {
+      background-color: #ffe9a8;
+      border-color: #ffd23f;
+    }
+    .simon-btn.correct {
+      background-color: #d6f5df;
+      border-color: #4ac16d;
+    }
+    .simon-btn.wrong {
+      background-color: #ffd6d6;
+      border-color: #e0455f;
+    }
+
+    /* ---------- play minigame ---------- */
+    .play-arena {
+      position: relative;
+      width: 100%;
+      height: 190px;
+      background-color: #f6faf7;
+      border: 2px solid #dbeee0;
+      border-radius: 0.9rem;
+      overflow: hidden;
+      margin: 0.5rem 0;
+    }
+    .play-target {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      cursor: pointer;
+    }
+    .float-text {
+      position: absolute;
+      font-weight: 700;
+      color: #3aa06e;
+      pointer-events: none;
+      animation: float-up 0.7s ease-out forwards;
+    }
+    @keyframes float-up {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-30px); }
+    }
+
+    /* ---------- sleep minigame ---------- */
+    .sleep-stage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 160px;
+    }
+    .sleep-circle {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background-color: #dff5e6;
+      border: 3px solid #3aa06e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.4rem;
+      transform-origin: center;
+    }
+    .sleep-circle.calm-hit {
+      animation: calm-flash-hit 0.3s ease-out;
+    }
+    .sleep-circle.calm-miss {
+      animation: calm-flash-miss 0.3s ease-out;
+    }
+    @keyframes calm-flash-hit {
+      0% { box-shadow: 0 0 0 8px rgba(74, 193, 109, 0.5); }
+      100% { box-shadow: 0 0 0 0 rgba(74, 193, 109, 0); }
+    }
+    @keyframes calm-flash-miss {
+      0% { box-shadow: 0 0 0 8px rgba(224, 69, 95, 0.5); }
+      100% { box-shadow: 0 0 0 0 rgba(224, 69, 95, 0); }
+    }
+
+    /* ---------- result card ---------- */
+    .result-card {
+      text-align: center;
+    }
+    .result-emoji {
+      font-size: 3rem;
+      margin-bottom: 0.4rem;
+    }
+    .result-message {
+      margin: 0 0 1rem 0;
+      font-size: 0.95rem;
+      color: #444;
+    }
+    .result-actions {
+      display: flex;
+    }
+    .result-actions > *:not(:last-child) {
+      margin-right: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="back-link" href="index.html">&larr; Back to games</a>
+    <h1>Pet Care</h1>
+  </header>
+  <main>
+    <div id="screen-select" class="screen">
+      <h2>Choose your pet</h2>
+      <div class="pet-choice-grid">
+        <button type="button" class="pet-choice-btn" id="choose-cat-btn">
+          <span class="pet-choice-emoji">🐱</span>Cat
+        </button>
+        <button type="button" class="pet-choice-btn" id="choose-dog-btn">
+          <span class="pet-choice-emoji">🐶</span>Dog
+        </button>
+      </div>
+    </div>
+
+    <div id="screen-day" class="screen hidden">
+      <div class="stats-bars">
+        <div class="stat-row">
+          <span class="stat-icon">🍖</span>
+          <div class="bar-track"><div class="bar-fill" id="bar-hunger"></div></div>
+          <span class="stat-value" id="value-hunger">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-icon">⚡</span>
+          <div class="bar-track"><div class="bar-fill" id="bar-energy"></div></div>
+          <span class="stat-value" id="value-energy">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-icon">❤️</span>
+          <div class="bar-track"><div class="bar-fill" id="bar-happiness"></div></div>
+          <span class="stat-value" id="value-happiness">0</span>
+        </div>
+      </div>
+
+      <div id="sick-banner" class="sick-banner hidden">
+        <span id="sick-message">🤒 Not feeling well.</span>
+        <button type="button" class="secondary-btn" id="medicine-btn">Give Medicine</button>
+      </div>
+
+      <div class="pet-display">
+        <div id="pet-emoji" class="pet-emoji"></div>
+      </div>
+
+      <div id="actions-grid" class="actions-grid">
+        <button type="button" class="action-btn" id="feed-btn"><span class="action-icon">🍽️</span>Feed</button>
+        <button type="button" class="action-btn" id="train-btn"><span class="action-icon">🎓</span>Train</button>
+        <button type="button" class="action-btn" id="play-btn"><span class="action-icon">🎾</span>Play</button>
+        <button type="button" class="action-btn" id="sleep-btn"><span class="action-icon">🌙</span>Sleep</button>
+      </div>
+
+      <div id="minigame-panel" class="minigame-panel hidden"></div>
+
+      <p class="day-footer">
+        Day <span id="day-value">1</span>
+        &nbsp;·&nbsp;Best: 🍖<span id="best-feed">0</span>
+        &nbsp;🎓<span id="best-train">0</span>
+        &nbsp;🎾<span id="best-play">0</span>
+      </p>
+      <a href="#" id="change-pet-link" class="change-pet-link">Choose a different pet</a>
+    </div>
+  </main>
+
+  <script>
+    var PET_EMOJI = { cat: '🐱', dog: '🐶' };
+    var PET_LABEL = { cat: 'Cat', dog: 'Dog' };
+    var FOOD_EMOJI = { cat: '🐟', dog: '🍖' };
+    var TRAIN_ICONS = ['🐾', '✋', '🎾', '🔁'];
+    var MEDICINE_ICONS = ['💊', '🩹', '💧', '🍵'];
+    var TICK_MS = 3500;
+
+    var pet = null;
+    var best = { feedStreak: 0, trainRounds: 0, playHits: 0 };
+    var activeMinigame = null;
+    var decayTimerId = null;
+
+    var actionsGrid = document.getElementById('actions-grid');
+    var minigamePanel = document.getElementById('minigame-panel');
+    var sickBanner = document.getElementById('sick-banner');
+    var changePetLink = document.getElementById('change-pet-link');
+
+    function show(el) { el.classList.remove('hidden'); }
+    function hide(el) { el.classList.add('hidden'); }
+
+    function clamp(v) {
+      if (v < 0) return 0;
+      if (v > 100) return 100;
+      return v;
+    }
+
+    function bindTap(el, fn) {
+      el.addEventListener('click', fn);
+      el.addEventListener('touchstart', function (event) {
+        event.preventDefault();
+        fn();
+      });
+    }
+
+    /* ---------- pet selection & day flow ---------- */
+
+    function selectPet(kind) {
+      pet = { kind: kind, hunger: 75, energy: 100, happiness: 75, sick: false, day: 1 };
+      best = { feedStreak: 0, trainRounds: 0, playHits: 0 };
+      hide(document.getElementById('screen-select'));
+      show(document.getElementById('screen-day'));
+      renderPetMood();
+      renderStats();
+      renderDayFooter();
+      showActionsUI();
+      if (decayTimerId) clearInterval(decayTimerId);
+      decayTimerId = setInterval(tick, TICK_MS);
+    }
+
+    function changePet() {
+      if (activeMinigame) return;
+      if (decayTimerId) clearInterval(decayTimerId);
+      decayTimerId = null;
+      activeMinigame = null;
+      pet = null;
+      hide(document.getElementById('screen-day'));
+      show(document.getElementById('screen-select'));
+    }
+
+    function tick() {
+      if (activeMinigame) return;
+      var hungerRate = pet.sick ? 3 : 2;
+      var happinessRate = pet.sick ? 2 : 1;
+      pet.hunger = clamp(pet.hunger - hungerRate);
+      pet.happiness = clamp(pet.happiness - happinessRate);
+      pet.energy = clamp(pet.energy - 1);
+      if (!pet.sick && (pet.hunger <= 0 || pet.happiness <= 0)) {
+        pet.sick = true;
+      }
+      renderStats();
+      renderPetMood();
+      updateSickBanner();
+    }
+
+    function nextDay() {
+      pet.day += 1;
+      if (pet.sick) {
+        pet.hunger = 45;
+        pet.happiness = 45;
+      } else {
+        pet.hunger = 75;
+        pet.happiness = 75;
+      }
+      pet.energy = 100;
+      renderStats();
+      renderPetMood();
+      renderDayFooter();
+      endMinigame();
+    }
+
+    /* ---------- rendering ---------- */
+
+    function setBar(name, value) {
+      var fill = document.getElementById('bar-' + name);
+      var label = document.getElementById('value-' + name);
+      fill.style.width = value + '%';
+      label.textContent = Math.round(value);
+      fill.classList.remove('bar-low', 'bar-mid', 'bar-high');
+      fill.classList.add(value < 30 ? 'bar-low' : (value < 60 ? 'bar-mid' : 'bar-high'));
+    }
+
+    function renderStats() {
+      setBar('hunger', pet.hunger);
+      setBar('energy', pet.energy);
+      setBar('happiness', pet.happiness);
+    }
+
+    function renderPetMood() {
+      var el = document.getElementById('pet-emoji');
+      el.textContent = PET_EMOJI[pet.kind];
+      el.className = 'pet-emoji';
+      if (pet.sick) {
+        el.classList.add('mood-sick');
+      } else if (pet.energy <= 20) {
+        el.classList.add('mood-sleepy');
+      } else if (pet.happiness >= 70) {
+        el.classList.add('mood-happy');
+      }
+    }
+
+    function renderDayFooter() {
+      document.getElementById('day-value').textContent = pet.day;
+      document.getElementById('best-feed').textContent = best.feedStreak;
+      document.getElementById('best-train').textContent = best.trainRounds;
+      document.getElementById('best-play').textContent = best.playHits;
+    }
+
+    function updateSickBanner() {
+      if (pet.sick && !activeMinigame) {
+        document.getElementById('sick-message').textContent = '🤒 ' + PET_LABEL[pet.kind] + ' is not feeling well.';
+        show(sickBanner);
+      } else {
+        hide(sickBanner);
+      }
+    }
+
+    function showActionsUI() {
+      show(actionsGrid);
+      show(changePetLink);
+      updateSickBanner();
+    }
+
+    function hideActionsUI() {
+      hide(actionsGrid);
+      hide(sickBanner);
+      hide(changePetLink);
+    }
+
+    function endMinigame() {
+      activeMinigame = null;
+      minigamePanel.innerHTML = '';
+      hide(minigamePanel);
+      showActionsUI();
+    }
+
+    function renderResult(emojiTitle, message) {
+      minigamePanel.innerHTML =
+        '<div class="result-card">' +
+          '<div class="result-emoji">' + emojiTitle + '</div>' +
+          '<p class="result-message">' + message + '</p>' +
+          '<button type="button" class="primary-btn" id="result-continue-btn">Continue</button>' +
+        '</div>';
+      bindTap(document.getElementById('result-continue-btn'), endMinigame);
+    }
+
+    function renderResultRetry(emojiTitle, message, retryFn) {
+      minigamePanel.innerHTML =
+        '<div class="result-card">' +
+          '<div class="result-emoji">' + emojiTitle + '</div>' +
+          '<p class="result-message">' + message + '</p>' +
+          '<div class="result-actions">' +
+            '<button type="button" class="secondary-btn" id="result-later-btn">Later</button>' +
+            '<button type="button" class="primary-btn" id="result-retry-btn">Try Again</button>' +
+          '</div>' +
+        '</div>';
+      bindTap(document.getElementById('result-later-btn'), endMinigame);
+      bindTap(document.getElementById('result-retry-btn'), retryFn);
+    }
+
+    function showDaySummary() {
+      minigamePanel.innerHTML =
+        '<div class="result-card">' +
+          '<div class="result-emoji">🌙</div>' +
+          '<p class="result-message">Day ' + pet.day + ' complete. ' + PET_LABEL[pet.kind] + ' had a good rest.</p>' +
+          '<button type="button" class="primary-btn" id="next-day-btn">Start Day ' + (pet.day + 1) + '</button>' +
+        '</div>';
+      bindTap(document.getElementById('next-day-btn'), nextDay);
+    }
+
+    function spawnFloatText(container, text, left, top) {
+      var span = document.createElement('span');
+      span.className = 'float-text';
+      span.textContent = text;
+      span.style.left = left;
+      span.style.top = top;
+      container.appendChild(span);
+      setTimeout(function () {
+        if (span.parentNode) span.parentNode.removeChild(span);
+      }, 700);
+    }
+
+    /* ---------- feed minigame ---------- */
+
+    function feedMarkup(foodEmoji) {
+      return '' +
+        '<div class="minigame-header"><span class="minigame-title">Feed</span><button type="button" class="cancel-btn" id="minigame-cancel-btn">&times;</button></div>' +
+        '<p class="minigame-hint" id="feed-round-label">Round 1 / 5</p>' +
+        '<div class="feed-track" id="feed-track">' +
+          '<div class="feed-zone" id="feed-zone"></div>' +
+          '<div class="feed-marker" id="feed-marker">' + foodEmoji + '</div>' +
+        '</div>' +
+        '<p class="minigame-hint" id="feed-hit-label">0 caught</p>' +
+        '<button type="button" class="primary-btn" id="feed-catch-btn">Catch!</button>';
+    }
+
+    function startFeed() {
+      activeMinigame = 'feed';
+      hideActionsUI();
+      show(minigamePanel);
+      minigamePanel.innerHTML = feedMarkup(FOOD_EMOJI[pet.kind]);
+
+      var rounds = 5;
+      var hit = 0;
+      var round = 0;
+      var bestStreak = 0;
+      var curStreak = 0;
+      var speed = pet.sick ? 1.6 : 1.1;
+      var zoneWidth = pet.sick ? 16 : 22;
+      var rafId = 0;
+      var startTs = 0;
+      var resolved = false;
+      var zoneLeft = 0;
+
+      var marker = document.getElementById('feed-marker');
+      var zoneEl = document.getElementById('feed-zone');
+      var roundLabel = document.getElementById('feed-round-label');
+      var hitLabel = document.getElementById('feed-hit-label');
+
+      bindTap(document.getElementById('feed-catch-btn'), attemptCatch);
+      bindTap(document.getElementById('minigame-cancel-btn'), function () {
+        cancelAnimationFrame(rafId);
+        endMinigame();
+      });
+
+      function newRound() {
+        resolved = false;
+        zoneLeft = 10 + Math.random() * (100 - zoneWidth - 20);
+        zoneEl.style.left = zoneLeft + '%';
+        zoneEl.style.width = zoneWidth + '%';
+        startTs = 0;
+        rafId = requestAnimationFrame(frame);
+      }
+
+      function frame(ts) {
+        if (startTs === 0) startTs = ts;
+        var t = (ts - startTs) / 1000;
+        var pos = 50 + 50 * Math.sin(t * speed * Math.PI * 2 - Math.PI / 2);
+        marker.style.left = pos + '%';
+        rafId = requestAnimationFrame(frame);
+      }
+
+      function attemptCatch() {
+        if (resolved) return;
+        resolved = true;
+        cancelAnimationFrame(rafId);
+        var markerLeft = parseFloat(marker.style.left) || 0;
+        var success = markerLeft >= zoneLeft && markerLeft <= zoneLeft + zoneWidth;
+        if (success) {
+          hit++;
+          curStreak++;
+          if (curStreak > bestStreak) bestStreak = curStreak;
+        } else {
+          curStreak = 0;
+        }
+        marker.classList.add(success ? 'catch-hit' : 'catch-miss');
+        round++;
+        roundLabel.textContent = 'Round ' + Math.min(round + 1, rounds) + ' / ' + rounds;
+        hitLabel.textContent = hit + ' caught';
+        setTimeout(function () {
+          if (round >= rounds) {
+            finishFeed();
+          } else {
+            marker.classList.remove('catch-hit', 'catch-miss');
+            newRound();
+          }
+        }, 500);
+      }
+
+      function finishFeed() {
+        var gain = Math.min(hit * 8, 40);
+        pet.hunger = clamp(pet.hunger + gain);
+        if (bestStreak > best.feedStreak) best.feedStreak = bestStreak;
+        renderStats();
+        renderDayFooter();
+        setTimeout(function () {
+          renderResult('🍖', hit + ' / ' + rounds + ' caught. Hunger +' + gain);
+        }, 300);
+      }
+
+      newRound();
+    }
+
+    /* ---------- train minigame ---------- */
+
+    function trainMarkup() {
+      var html = '<div class="minigame-header"><span class="minigame-title">Train</span><button type="button" class="cancel-btn" id="minigame-cancel-btn">&times;</button></div>' +
+        '<p class="minigame-hint" id="train-status">Get ready...</p>' +
+        '<div class="simon-grid">';
+      for (var i = 0; i < TRAIN_ICONS.length; i++) {
+        html += '<button type="button" class="simon-btn" disabled>' + TRAIN_ICONS[i] + '</button>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function startTrain() {
+      activeMinigame = 'train';
+      hideActionsUI();
+      show(minigamePanel);
+      minigamePanel.innerHTML = trainMarkup();
+
+      var sequence = [];
+      var round = 0;
+      var playerIndex = 0;
+      var showing = true;
+      var timeouts = [];
+      var maxRounds = 8;
+      var flashOn = pet.sick ? 350 : 500;
+      var flashGap = pet.sick ? 150 : 250;
+
+      var buttons = minigamePanel.querySelectorAll('.simon-btn');
+      var statusEl = document.getElementById('train-status');
+
+      for (var i = 0; i < buttons.length; i++) {
+        (function (btn, idx) {
+          bindTap(btn, function () { handlePress(idx); });
+        })(buttons[i], i);
+      }
+      bindTap(document.getElementById('minigame-cancel-btn'), function () {
+        clearTimeouts();
+        endMinigame();
+      });
+
+      function clearTimeouts() {
+        for (var i = 0; i < timeouts.length; i++) clearTimeout(timeouts[i]);
+        timeouts = [];
+      }
+
+      function setButtonsEnabled(enabled) {
+        for (var i = 0; i < buttons.length; i++) buttons[i].disabled = !enabled;
+      }
+
+      function addRound() {
+        sequence.push(Math.floor(Math.random() * TRAIN_ICONS.length));
+        round++;
+        playerIndex = 0;
+        playSequence();
+      }
+
+      function playSequence() {
+        showing = true;
+        statusEl.textContent = 'Watch closely...';
+        setButtonsEnabled(false);
+        for (var i = 0; i < sequence.length; i++) {
+          (function (step, idx) {
+            timeouts.push(setTimeout(function () {
+              buttons[step].classList.add('lit');
+              timeouts.push(setTimeout(function () {
+                buttons[step].classList.remove('lit');
+              }, flashOn));
+            }, idx * (flashOn + flashGap)));
+          })(sequence[i], i);
+        }
+        timeouts.push(setTimeout(function () {
+          showing = false;
+          statusEl.textContent = 'Your turn! Round ' + round;
+          setButtonsEnabled(true);
+        }, sequence.length * (flashOn + flashGap)));
+      }
+
+      function handlePress(idx) {
+        if (showing) return;
+        if (idx === sequence[playerIndex]) {
+          buttons[idx].classList.add('correct');
+          setTimeout(function () { buttons[idx].classList.remove('correct'); }, 200);
+          playerIndex++;
+          if (playerIndex === sequence.length) {
+            setButtonsEnabled(false);
+            if (round >= maxRounds) {
+              finishTrain(true);
+            } else {
+              statusEl.textContent = 'Nice! Next round...';
+              timeouts.push(setTimeout(addRound, 600));
+            }
+          }
+        } else {
+          setButtonsEnabled(false);
+          buttons[idx].classList.add('wrong');
+          finishTrain(false);
+        }
+      }
+
+      function finishTrain(perfect) {
+        clearTimeouts();
+        var completed = perfect ? round : round - 1;
+        if (completed < 0) completed = 0;
+        if (completed > best.trainRounds) best.trainRounds = completed;
+        var gain = Math.min(completed * 6, 40);
+        pet.happiness = clamp(pet.happiness + gain);
+        renderStats();
+        renderDayFooter();
+        setTimeout(function () {
+          renderResult('🎓', completed + ' round' + (completed === 1 ? '' : 's') + ' done. Happiness +' + gain);
+        }, 500);
+      }
+
+      addRound();
+    }
+
+    /* ---------- play minigame ---------- */
+
+    function playMarkup(targetEmoji) {
+      return '<div class="minigame-header"><span class="minigame-title">Play</span><button type="button" class="cancel-btn" id="minigame-cancel-btn">&times;</button></div>' +
+        '<p class="minigame-hint">Time: <span id="play-time"></span>s &nbsp; Hits: <span id="play-hits">0</span></p>' +
+        '<div class="play-arena" id="play-arena"><span class="play-target" id="play-target">' + targetEmoji + '</span></div>';
+    }
+
+    function startPlay() {
+      activeMinigame = 'play';
+      hideActionsUI();
+      show(minigamePanel);
+      var targetEmoji = pet.kind === 'cat' ? '🧶' : '🎾';
+      minigamePanel.innerHTML = playMarkup(targetEmoji);
+
+      var duration = pet.sick ? 9 : 12;
+      var timeLeft = duration;
+      var hits = 0;
+
+      var arena = document.getElementById('play-arena');
+      var target = document.getElementById('play-target');
+      var timeEl = document.getElementById('play-time');
+      var hitsEl = document.getElementById('play-hits');
+      timeEl.textContent = timeLeft;
+
+      var intervalId = setInterval(function () {
+        timeLeft -= 1;
+        timeEl.textContent = timeLeft;
+        if (timeLeft <= 0) finish();
+      }, 1000);
+
+      bindTap(target, handleHit);
+      bindTap(document.getElementById('minigame-cancel-btn'), function () {
+        clearInterval(intervalId);
+        endMinigame();
+      });
+
+      function relocateTarget() {
+        var maxLeft = Math.max(arena.clientWidth - target.offsetWidth, 0);
+        var maxTop = Math.max(arena.clientHeight - target.offsetHeight, 0);
+        target.style.left = Math.round(Math.random() * maxLeft) + 'px';
+        target.style.top = Math.round(Math.random() * maxTop) + 'px';
+      }
+
+      function handleHit() {
+        if (activeMinigame !== 'play') return;
+        hits++;
+        hitsEl.textContent = hits;
+        spawnFloatText(arena, '+1', target.style.left, target.style.top);
+        relocateTarget();
+      }
+
+      function finish() {
+        clearInterval(intervalId);
+        var gain = Math.min(hits * 4, 40);
+        pet.happiness = clamp(pet.happiness + gain);
+        if (hits > best.playHits) best.playHits = hits;
+        renderStats();
+        renderDayFooter();
+        renderResult('🎉', hits + ' hits in ' + duration + 's! Happiness +' + gain);
+      }
+
+      relocateTarget();
+    }
+
+    /* ---------- sleep minigame ---------- */
+
+    function sleepMarkup(needed) {
+      return '<div class="minigame-header"><span class="minigame-title">Sleep</span><button type="button" class="cancel-btn" id="minigame-cancel-btn">&times;</button></div>' +
+        '<p class="minigame-hint">Tap Shh when ' + PET_LABEL[pet.kind] + ' settles down low.</p>' +
+        '<div class="sleep-stage"><div class="sleep-circle" id="sleep-circle">' + PET_EMOJI[pet.kind] + '</div></div>' +
+        '<p class="minigame-hint">Calmed: <span id="sleep-progress">0 / ' + needed + '</span></p>' +
+        '<button type="button" class="primary-btn" id="sleep-tuck-btn">Shh...</button>';
+    }
+
+    function startSleep() {
+      activeMinigame = 'sleep';
+      hideActionsUI();
+      show(minigamePanel);
+      var needed = 5;
+      minigamePanel.innerHTML = sleepMarkup(needed);
+
+      var successes = 0;
+      var scale = 1;
+      var rafId = 0;
+      var startTs = 0;
+      var speed = 1.1;
+      var maxDuration = 25000;
+
+      var circle = document.getElementById('sleep-circle');
+      var progressEl = document.getElementById('sleep-progress');
+      var timeoutId = setTimeout(finish, maxDuration);
+
+      bindTap(document.getElementById('sleep-tuck-btn'), attemptTuck);
+      bindTap(document.getElementById('minigame-cancel-btn'), function () {
+        cancelAnimationFrame(rafId);
+        clearTimeout(timeoutId);
+        endMinigame();
+      });
+
+      function frame(ts) {
+        if (startTs === 0) startTs = ts;
+        var t = (ts - startTs) / 1000;
+        scale = 1 - 0.3 * (0.5 - 0.5 * Math.cos(t * speed * Math.PI * 2));
+        circle.style.transform = 'scale(' + scale.toFixed(3) + ')';
+        rafId = requestAnimationFrame(frame);
+      }
+
+      function attemptTuck() {
+        if (scale <= 0.78) {
+          successes++;
+          progressEl.textContent = successes + ' / ' + needed;
+          circle.classList.add('calm-hit');
+        } else {
+          circle.classList.add('calm-miss');
+        }
+        setTimeout(function () {
+          circle.classList.remove('calm-hit', 'calm-miss');
+        }, 200);
+        if (successes >= needed) finish();
+      }
+
+      function finish() {
+        cancelAnimationFrame(rafId);
+        clearTimeout(timeoutId);
+        pet.energy = 100;
+        renderStats();
+        showDaySummary();
+      }
+
+      rafId = requestAnimationFrame(frame);
+    }
+
+    /* ---------- medicine minigame ---------- */
+
+    function medicineMarkup() {
+      var html = '<div class="minigame-header"><span class="minigame-title">Medicine</span><button type="button" class="cancel-btn" id="minigame-cancel-btn">&times;</button></div>' +
+        '<p class="minigame-hint" id="medicine-status">Watch the treatment...</p>' +
+        '<div class="simon-grid">';
+      for (var i = 0; i < MEDICINE_ICONS.length; i++) {
+        html += '<button type="button" class="simon-btn" disabled>' + MEDICINE_ICONS[i] + '</button>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function startMedicine() {
+      activeMinigame = 'medicine';
+      hideActionsUI();
+      show(minigamePanel);
+      minigamePanel.innerHTML = medicineMarkup();
+
+      var length = 4;
+      var sequence = [];
+      for (var i = 0; i < length; i++) sequence.push(Math.floor(Math.random() * MEDICINE_ICONS.length));
+      var playerIndex = 0;
+      var showing = true;
+      var timeouts = [];
+      var timeLimitId = null;
+      var flashOn = 400;
+      var flashGap = 200;
+
+      var buttons = minigamePanel.querySelectorAll('.simon-btn');
+      var statusEl = document.getElementById('medicine-status');
+
+      for (var i = 0; i < buttons.length; i++) {
+        (function (btn, idx) {
+          bindTap(btn, function () { handlePress(idx); });
+        })(buttons[i], i);
+      }
+      bindTap(document.getElementById('minigame-cancel-btn'), function () {
+        cleanup();
+        endMinigame();
+      });
+
+      function cleanup() {
+        for (var i = 0; i < timeouts.length; i++) clearTimeout(timeouts[i]);
+        if (timeLimitId) clearTimeout(timeLimitId);
+      }
+
+      function setButtonsEnabled(enabled) {
+        for (var i = 0; i < buttons.length; i++) buttons[i].disabled = !enabled;
+      }
+
+      setButtonsEnabled(false);
+      for (var i = 0; i < sequence.length; i++) {
+        (function (step, idx) {
+          timeouts.push(setTimeout(function () {
+            buttons[step].classList.add('lit');
+            timeouts.push(setTimeout(function () {
+              buttons[step].classList.remove('lit');
+            }, flashOn));
+          }, idx * (flashOn + flashGap)));
+        })(sequence[i], i);
+      }
+      timeouts.push(setTimeout(function () {
+        showing = false;
+        statusEl.textContent = 'Repeat it, quickly!';
+        setButtonsEnabled(true);
+        timeLimitId = setTimeout(fail, 6000);
+      }, sequence.length * (flashOn + flashGap)));
+
+      function handlePress(idx) {
+        if (showing) return;
+        if (idx === sequence[playerIndex]) {
+          playerIndex++;
+          if (playerIndex === sequence.length) {
+            setButtonsEnabled(false);
+            succeed();
+          }
+        } else {
+          setButtonsEnabled(false);
+          fail();
+        }
+      }
+
+      function succeed() {
+        cleanup();
+        pet.sick = false;
+        pet.hunger = clamp(pet.hunger + 20);
+        pet.happiness = clamp(pet.happiness + 20);
+        renderStats();
+        renderPetMood();
+        renderResult('💊', PET_LABEL[pet.kind] + ' feels much better!');
+      }
+
+      function fail() {
+        cleanup();
+        renderResultRetry('😿', 'Not quite. ' + PET_LABEL[pet.kind] + ' still needs help.', startMedicine);
+      }
+    }
+
+    /* ---------- wiring ---------- */
+
+    bindTap(document.getElementById('choose-cat-btn'), function () { selectPet('cat'); });
+    bindTap(document.getElementById('choose-dog-btn'), function () { selectPet('dog'); });
+    bindTap(document.getElementById('feed-btn'), startFeed);
+    bindTap(document.getElementById('train-btn'), startTrain);
+    bindTap(document.getElementById('play-btn'), startPlay);
+    bindTap(document.getElementById('sleep-btn'), startSleep);
+    bindTap(document.getElementById('medicine-btn'), startMedicine);
+    document.getElementById('change-pet-link').addEventListener('click', function (event) {
+      event.preventDefault();
+      changePet();
+    });
+  </script>
+  <script src="pwa.js"></script>
+</body>
+</html>

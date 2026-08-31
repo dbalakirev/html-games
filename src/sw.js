@@ -5,6 +5,7 @@ const ASSETS_TO_CACHE = [
   './sudoku.html',
   './tictac.html',
   './arkanoid.html',
+  './pet.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
