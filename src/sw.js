@@ -6,6 +6,7 @@ const ASSETS_TO_CACHE = [
   './tictac.html',
   './arkanoid.html',
   './pet.html',
+  './snake.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',

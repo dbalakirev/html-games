@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Snake - HTML Games</title>
+
+  <!-- PWA Meta Tags & Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4A90E2">
+
+  <!-- iOS / iPhone 5S PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Snake">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: calc(0.5rem + env(safe-area-inset-top, 0px)) calc(0.75rem + env(safe-area-inset-right, 0px)) calc(0.5rem + env(safe-area-inset-bottom, 0px)) calc(0.75rem + env(safe-area-inset-left, 0px));
+      background-color: #eef3fb;
+      color: #333;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      overflow-x: hidden;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 0.4rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: #4A90E2;
+    }
+    a.back-link {
+      display: inline-block;
+      margin-bottom: 0.25rem;
+      color: #4A90E2;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* No flex `gap` anywhere: it needs Safari 14.1, we target Safari 12. */
+    #hud {
+      display: flex;
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto 0.4rem auto;
+    }
+    .hud-item {
+      flex: 1;
+      text-align: center;
+      padding: 0.3rem 0.15rem;
+      background-color: #fff;
+      border-radius: 0.6rem;
+      margin-right: 0.4rem;
+    }
+    .hud-item:last-child {
+      margin-right: 0;
+    }
+    .hud-label {
+      display: block;
+      font-size: 0.65rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #7b8794;
+    }
+    .hud-value {
+      display: block;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #2d3a4a;
+    }
+
+    #stage {
+      width: 100%;
+      text-align: center;
+    }
+    #game {
+      display: block;
+      margin: 0 auto;
+      background-color: #1d2233;
+      border-radius: 0.6rem;
+      /* Progressive enhancement: iOS 12 ignores this, so touchmove also
+         calls preventDefault() to stop the page scrolling under the finger. */
+      touch-action: none;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      margin-top: 0.5rem;
+    }
+    button#new-btn {
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 0.6rem 1.5rem;
+      border: none;
+      border-radius: 999px;
+      background-color: #4ac16d;
+      color: #fff;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    button#new-btn:active {
+      background-color: #3a9c56;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="back-link" href="index.html">&larr; Back to games</a>
+    <h1>Snake</h1>
+  </header>
+  <main>
+    <div id="hud">
+      <div class="hud-item">
+        <span class="hud-label">Score</span>
+        <span class="hud-value" id="score-value">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Speed</span>
+        <span class="hud-value" id="speed-value">1</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Best</span>
+        <span class="hud-value" id="best-value">0</span>
+      </div>
+    </div>
+
+    <div id="stage">
+      <canvas id="game"></canvas>
+    </div>
+
+    <div class="controls">
+      <button type="button" id="new-btn">New Game</button>
+    </div>
+  </main>
+
+  <script>
+    var COLS = 15;
+    var MIN_ROWS = 13;
+    var MAX_ROWS = 25;
+    var START_INTERVAL = 0.22; /* seconds per step */
+    var MIN_INTERVAL = 0.09;
+    var SPEED_UP_PER_FOOD = 0.006;
+    var SWIPE_THRESHOLD = 16; /* CSS px of travel before a swipe counts */
+    var STORAGE_KEY = 'snake-best';
+
+    var canvas = document.getElementById('game');
+    var ctx = canvas.getContext('2d');
+
+    var cell = 0;
+    var rows = 0;
+    var W = 0;
+    var H = 0;
+
+    var state = 'ready'; /* ready | playing | over */
+    var score = 0;
+    var best = loadBest();
+
+    var snake = [];       /* head first, each { x: col, y: row } */
+    var occupied = [];    /* rows * COLS flags, mirrors `snake` for O(1) hit tests */
+    var dir = { x: 1, y: 0 };
+    var turns = [];       /* queued direction changes, at most one per step */
+    var food = { x: 0, y: 0 };
+    var interval = START_INTERVAL;
+    var acc = 0;
+
+    var rafId = 0;
+    var lastTs = 0;
+    var running = false;
+    var dirty = true;
+
+    function loadBest() {
+      try {
+        var raw = window.localStorage.getItem(STORAGE_KEY);
+        var value = parseInt(raw, 10);
+        return isNaN(value) ? 0 : value;
+      } catch (e) {
+        return 0; /* private mode, storage disabled */
+      }
+    }
+
+    function saveBest() {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, String(best));
+      } catch (e) {
+        /* ignore, best score just will not persist */
+      }
+    }
+
+    /* ---------- sizing ---------- */
+
+    function sizeCanvas() {
+      var docEl = document.documentElement;
+      var bodyStyle = window.getComputedStyle(document.body);
+      var padBottom = parseFloat(bodyStyle.paddingBottom) || 0;
+
+      var stageTop = document.getElementById('stage').getBoundingClientRect().top;
+      var controlsH = document.querySelector('.controls').offsetHeight;
+
+      var availW = Math.min(docEl.clientWidth - 24, 420);
+      var availH = docEl.clientHeight - stageTop - controlsH - padBottom - 16;
+
+      cell = Math.max(12, Math.floor(availW / COLS));
+      rows = Math.floor(availH / cell);
+      if (rows < MIN_ROWS) rows = MIN_ROWS;
+      if (rows > MAX_ROWS) rows = MAX_ROWS;
+
+      W = cell * COLS;
+      H = cell * rows;
+
+      /* Cap the pixel ratio: the 5S is 2x, and filling more than that
+         wastes A7 cycles for no visible gain. */
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      canvas.width = Math.floor(W * dpr);
+      canvas.height = Math.floor(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    /* ---------- grid helpers ---------- */
+
+    function clearOccupied() {
+      occupied = [];
+      var total = rows * COLS;
+      for (var i = 0; i < total; i++) {
+        occupied.push(false);
+      }
+    }
+
+    function setOccupied(x, y, value) {
+      occupied[y * COLS + x] = value;
+    }
+
+    function isOccupied(x, y) {
+      return occupied[y * COLS + x] === true;
+    }
+
+    function placeFood() {
+      var free = [];
+      for (var y = 0; y < rows; y++) {
+        for (var x = 0; x < COLS; x++) {
+          if (!isOccupied(x, y)) free.push(y * COLS + x);
+        }
+      }
+      if (free.length === 0) return; /* board full: the snake has won the board */
+      var pick = free[Math.floor(Math.random() * free.length)];
+      food.x = pick % COLS;
+      food.y = Math.floor(pick / COLS);
+    }
+
+    /* ---------- game flow ---------- */
+
+    function newGame() {
+      sizeCanvas();
+      score = 0;
+      interval = START_INTERVAL;
+      acc = 0;
+      state = 'ready';
+      dir = { x: 1, y: 0 };
+      turns = [];
+
+      clearOccupied();
+      snake = [];
+      var startY = Math.floor(rows / 2);
+      var startX = Math.floor(COLS / 2) - 1;
+      for (var i = 0; i < 3; i++) {
+        var part = { x: startX - i, y: startY };
+        snake.push(part);
+        setOccupied(part.x, part.y, true);
+      }
+
+      placeFood();
+      updateHud();
+      dirty = true;
+      startLoop();
+    }
+
+    function gameOver() {
+      state = 'over';
+      if (score > best) {
+        best = score;
+        saveBest();
+      }
+      updateHud();
+      dirty = true;
+    }
+
+    function updateHud() {
+      document.getElementById('score-value').textContent = score;
+      document.getElementById('best-value').textContent = best;
+      /* Speed reads as a level so the number means something to a player. */
+      var level = 1 + Math.round((START_INTERVAL - interval) / SPEED_UP_PER_FOOD / 4);
+      document.getElementById('speed-value').textContent = level;
+    }
+
+    /* ---------- stepping ---------- */
+
+    function step() {
+      if (turns.length > 0) dir = turns.shift();
+
+      var head = snake[0];
+      var nx = head.x + dir.x;
+      var ny = head.y + dir.y;
+
+      if (nx < 0 || nx >= COLS || ny < 0 || ny >= rows) {
+        gameOver();
+        return;
+      }
+
+      var eating = (nx === food.x && ny === food.y);
+      /* The tail vacates this step unless we eat, so moving into it is legal. */
+      if (!eating) {
+        var tail = snake[snake.length - 1];
+        setOccupied(tail.x, tail.y, false);
+      }
+
+      if (isOccupied(nx, ny)) {
+        gameOver();
+        return;
+      }
+
+      snake.unshift({ x: nx, y: ny });
+      setOccupied(nx, ny, true);
+
+      if (eating) {
+        score += 1;
+        if (score > best) {
+          best = score;
+          saveBest();
+        }
+        interval -= SPEED_UP_PER_FOOD;
+        if (interval < MIN_INTERVAL) interval = MIN_INTERVAL;
+        placeFood();
+        updateHud();
+      } else {
+        snake.pop();
+      }
+
+      dirty = true;
+    }
+
+    /* ---------- rendering ---------- */
+
+    function draw() {
+      ctx.fillStyle = '#1d2233';
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.lineWidth = 1;
+      for (var gx = 1; gx < COLS; gx++) {
+        ctx.beginPath();
+        ctx.moveTo(gx * cell + 0.5, 0);
+        ctx.lineTo(gx * cell + 0.5, H);
+        ctx.stroke();
+      }
+      for (var gy = 1; gy < rows; gy++) {
+        ctx.beginPath();
+        ctx.moveTo(0, gy * cell + 0.5);
+        ctx.lineTo(W, gy * cell + 0.5);
+        ctx.stroke();
+      }
+
+      var pad = Math.max(1, Math.round(cell * 0.14));
+      ctx.fillStyle = '#ff6f61';
+      ctx.fillRect(food.x * cell + pad, food.y * cell + pad, cell - pad * 2, cell - pad * 2);
+
+      var inset = Math.max(1, Math.round(cell * 0.08));
+      for (var i = snake.length - 1; i >= 0; i--) {
+        var part = snake[i];
+        ctx.fillStyle = (i === 0) ? '#ffd23f' : '#4ac16d';
+        ctx.fillRect(part.x * cell + inset, part.y * cell + inset, cell - inset * 2, cell - inset * 2);
+      }
+
+      if (state === 'ready') {
+        /* Above centre: the snake spawns on the middle row. */
+        drawOverlay(['Snake', 'Swipe to start'], false, H * 0.3);
+      } else if (state === 'over') {
+        drawOverlay(['Game Over', 'Score ' + score, 'Tap to play again'], true, H / 2);
+      }
+    }
+
+    function drawOverlay(lines, dim, centerY) {
+      if (dim) {
+        ctx.fillStyle = 'rgba(29, 34, 51, 0.78)';
+        ctx.fillRect(0, 0, W, H);
+      }
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      var baseSize = Math.max(14, Math.round(W * 0.062));
+      var startY = centerY - ((lines.length - 1) * baseSize * 1.5) / 2;
+      for (var i = 0; i < lines.length; i++) {
+        var isTitle = (i === 0);
+        ctx.font = (isTitle ? '700 ' : '400 ') +
+          (isTitle ? Math.round(baseSize * 1.35) : baseSize) + 'px ' +
+          '-apple-system, BlinkMacSystemFont, system-ui, sans-serif';
+        ctx.fillStyle = isTitle ? '#ffd23f' : '#eef3fb';
+        ctx.fillText(lines[i], W / 2, startY + i * baseSize * 1.5);
+      }
+    }
+
+    /* ---------- loop ---------- */
+
+    function loop(ts) {
+      if (!running) return;
+      if (lastTs === 0) lastTs = ts;
+      var dt = (ts - lastTs) / 1000;
+      lastTs = ts;
+      /* Clamp: after backgrounding, dt can be huge and the snake would
+         run the whole board in one frame. */
+      if (dt > 0.25) dt = 0.25;
+
+      if (state === 'playing') {
+        acc += dt;
+        while (acc >= interval && state === 'playing') {
+          acc -= interval;
+          step();
+        }
+      }
+
+      /* Only repaint when something moved: a static board costs the A7 nothing. */
+      if (dirty) {
+        draw();
+        dirty = false;
+      }
+      rafId = window.requestAnimationFrame(loop);
+    }
+
+    function startLoop() {
+      if (running) return;
+      running = true;
+      lastTs = 0;
+      rafId = window.requestAnimationFrame(loop);
+    }
+
+    function stopLoop() {
+      running = false;
+      if (rafId) window.cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+
+    /* ---------- input ---------- */
+
+    function lastDirection() {
+      return turns.length > 0 ? turns[turns.length - 1] : dir;
+    }
+
+    function turn(x, y) {
+      var last = lastDirection();
+      /* A 180 turn would drive straight into the neck. */
+      if (last.x === -x && last.y === -y) return;
+      if (last.x === x && last.y === y) return;
+      /* Two queued turns is plenty; more just feels like input lag. */
+      if (turns.length >= 2) return;
+      turns.push({ x: x, y: y });
+
+      if (state === 'ready') {
+        state = 'playing';
+        acc = 0;
+        dirty = true;
+      }
+    }
+
+    var touchX = 0;
+    var touchY = 0;
+    var touchMoved = false;
+
+    canvas.addEventListener('touchstart', function (event) {
+      event.preventDefault();
+      var t = event.changedTouches[0];
+      touchX = t.clientX;
+      touchY = t.clientY;
+      touchMoved = false;
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', function (event) {
+      /* Required on iOS 12, where `touch-action: none` is not honoured. */
+      event.preventDefault();
+      if (state === 'over') return;
+
+      var t = event.changedTouches[0];
+      var dx = t.clientX - touchX;
+      var dy = t.clientY - touchY;
+      if (Math.abs(dx) < SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) return;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        turn(dx > 0 ? 1 : -1, 0);
+      } else {
+        turn(0, dy > 0 ? 1 : -1);
+      }
+      /* Re-anchor so one long drag can steer several corners. */
+      touchX = t.clientX;
+      touchY = t.clientY;
+      touchMoved = true;
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', function (event) {
+      event.preventDefault();
+      if (!touchMoved && state === 'over') newGame();
+    }, { passive: false });
+
+    canvas.addEventListener('mousedown', function (event) {
+      if (state === 'over') newGame();
+    });
+
+    document.addEventListener('keydown', function (event) {
+      var key = event.key;
+      if (key === 'ArrowUp' || key === 'w') turn(0, -1);
+      else if (key === 'ArrowDown' || key === 's') turn(0, 1);
+      else if (key === 'ArrowLeft' || key === 'a') turn(-1, 0);
+      else if (key === 'ArrowRight' || key === 'd') turn(1, 0);
+      else return;
+      event.preventDefault();
+    });
+
+    document.getElementById('new-btn').addEventListener('click', newGame);
+    document.getElementById('new-btn').addEventListener('touchstart', function (event) {
+      event.preventDefault();
+      newGame();
+    });
+
+    /* Do not burn battery animating a game nobody can see, and do not let
+       the snake keep running while the phone is locked. */
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') {
+        stopLoop();
+      } else {
+        lastTs = 0;
+        acc = 0;
+        startLoop();
+      }
+    });
+
+    /* Only a resize that changes the grid can force a restart. Safari fires
+       `resize` when its toolbar collapses, and that must not end a good run. */
+    function handleResize() {
+      var oldCell = cell;
+      var oldRows = rows;
+      sizeCanvas();
+      if (cell === oldCell && rows === oldRows) {
+        dirty = true;
+        return;
+      }
+      newGame();
+    }
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    newGame();
+  </script>
+  <script src="pwa.js"></script>
+</body>
+</html>
