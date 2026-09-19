@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Whack-a-Mole - HTML Games</title>
+
+  <!-- PWA Meta Tags & Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4A90E2">
+
+  <!-- iOS / iPhone 5S PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Whack-a-Mole">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: calc(1rem + env(safe-area-inset-top, 0px)) calc(0.75rem + env(safe-area-inset-right, 0px)) calc(1rem + env(safe-area-inset-bottom, 0px)) calc(0.75rem + env(safe-area-inset-left, 0px));
+      background-color: #eaf6d8;
+      color: #333;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      overflow-x: hidden;
+    }
+    header {
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    h1 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1.6rem;
+      color: #5b8c3e;
+    }
+    a.back-link {
+      display: inline-block;
+      margin-bottom: 0.5rem;
+      color: #4A90E2;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #scoreboard {
+      display: flex;
+      width: 100%;
+      max-width: 320px;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .score-item {
+      flex: 1;
+      border-radius: 0.75rem;
+      padding: 0.5rem 0.25rem;
+      text-align: center;
+      font-weight: 700;
+    }
+    .score-score {
+      background-color: #fff3cd;
+      color: #b8860b;
+    }
+    .score-timer {
+      background-color: #ffe0cc;
+      color: #d2691e;
+    }
+    .score-best {
+      background-color: #e0f7e9;
+      color: #2e8b57;
+    }
+    .score-label {
+      display: block;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+    .score-value {
+      display: block;
+      font-size: 1.4rem;
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(90px, 100px));
+      grid-template-rows: repeat(3, minmax(90px, 100px));
+      gap: 10px;
+      width: fit-content;
+      margin: 0 auto 1rem auto;
+    }
+    .hole-cell {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    .hole {
+      position: absolute;
+      top: 4%;
+      left: 4%;
+      width: 92%;
+      height: 92%;
+      border-radius: 50%;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 35%, #6b4423 0%, #4a2f18 55%, #2b1a0d 100%);
+      box-shadow: inset 0 6px 10px rgba(0, 0, 0, 0.55), 0 3px 0 rgba(0, 0, 0, 0.15);
+    }
+    .mole-wrap {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: 70%;
+      transform: translate(-50%, 100%);
+      transition: transform 0.15s ease-out;
+      text-align: center;
+      line-height: 1;
+    }
+    .mole-wrap .mole {
+      font-size: 2.6rem;
+      display: inline-block;
+    }
+    .mole-wrap.up {
+      transform: translate(-50%, 12%);
+    }
+    .mole-wrap.hit {
+      transform: translate(-50%, 12%) scale(1.2);
+    }
+    .mole-wrap.golden .mole {
+      filter: drop-shadow(0 0 6px #ffd23f) drop-shadow(0 0 10px #ffb703);
+    }
+
+    .score-pop {
+      position: absolute;
+      top: 6%;
+      left: 50%;
+      transform: translate(-50%, 0);
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: #ff8c00;
+      pointer-events: none;
+      animation: scorePop 0.65s ease-out forwards;
+      z-index: 5;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
+    }
+    @keyframes scorePop {
+      0% { opacity: 1; transform: translate(-50%, 0); }
+      100% { opacity: 0; transform: translate(-50%, -34px); }
+    }
+
+    #message {
+      text-align: center;
+      min-height: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 0.75rem 0;
+    }
+    #message .result-symbol {
+      display: block;
+      font-size: 3rem;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+    #message .result-text {
+      display: block;
+      font-size: 1.2rem;
+      color: #2e8b57;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+    }
+    button#start-btn {
+      font-size: 1.1rem;
+      font-weight: 700;
+      padding: 0.75rem 1.75rem;
+      border: none;
+      border-radius: 999px;
+      background-color: #4ac16d;
+      color: #fff;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    button#start-btn:active {
+      background-color: #3a9c56;
+    }
+    button#start-btn:disabled {
+      background-color: #a9d6b6;
+      cursor: default;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="back-link" href="index.html">&larr; Back to games</a>
+    <h1>Whack-a-Mole</h1>
+  </header>
+  <main>
+    <div id="scoreboard">
+      <div class="score-item score-score">
+        <span class="score-label">Score</span>
+        <span class="score-value" id="score-value">0</span>
+      </div>
+      <div class="score-item score-timer">
+        <span class="score-label">Time</span>
+        <span class="score-value" id="timer-value">30</span>
+      </div>
+      <div class="score-item score-best">
+        <span class="score-label">Best</span>
+        <span class="score-value" id="best-value">0</span>
+      </div>
+    </div>
+
+    <div id="board"></div>
+
+    <p id="message">Tap Start to whack some moles!</p>
+
+    <div class="controls">
+      <button type="button" id="start-btn">Start</button>
+    </div>
+  </main>
+
+  <script>
+    var BOARD_SIZE = 9;
+    var MOLE_EMOJIS = ['🐹', '🐭', '🦔'];
+    var ROUND_DURATION = 30000;
+    var GOLDEN_CHANCE = 0.15;
+    var GOLDEN_POINTS = 3;
+    var NORMAL_POINTS = 1;
+    var BEST_KEY = 'whackamole-best-score';
+
+    var holes = [];
+    var score = 0;
+    var best = 0;
+    var roundActive = false;
+    var roundStartTime = 0;
+    var timerInterval = null;
+    var spawnTimeout = null;
+
+    function getBoardEl() {
+      return document.getElementById('board');
+    }
+
+    function buildBoard() {
+      var boardEl = getBoardEl();
+      boardEl.innerHTML = '';
+      for (var i = 0; i < BOARD_SIZE; i++) {
+        var cell = document.createElement('div');
+        cell.className = 'hole-cell';
+        cell.setAttribute('data-index', i);
+
+        var hole = document.createElement('div');
+        hole.className = 'hole';
+
+        var wrap = document.createElement('div');
+        wrap.className = 'mole-wrap';
+        var moleSpan = document.createElement('span');
+        moleSpan.className = 'mole';
+        moleSpan.textContent = MOLE_EMOJIS[0];
+        wrap.appendChild(moleSpan);
+        hole.appendChild(wrap);
+        cell.appendChild(hole);
+        boardEl.appendChild(cell);
+
+        holes.push({
+          index: i,
+          cellEl: cell,
+          wrapEl: wrap,
+          moleEl: moleSpan,
+          up: false,
+          hit: false,
+          golden: false,
+          hideTimer: null
+        });
+
+        (function (index) {
+          cell.addEventListener('click', function () {
+            whackHole(index);
+          });
+          cell.addEventListener('touchstart', function (event) {
+            event.preventDefault();
+            whackHole(index);
+          });
+        })(i);
+      }
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function updateScoreDisplay() {
+      document.getElementById('score-value').textContent = score;
+    }
+
+    function updateTimerDisplay(seconds) {
+      document.getElementById('timer-value').textContent = seconds;
+    }
+
+    function updateBestDisplay() {
+      document.getElementById('best-value').textContent = best;
+    }
+
+    function countActiveMoles() {
+      var count = 0;
+      for (var i = 0; i < holes.length; i++) {
+        if (holes[i].up) count++;
+      }
+      return count;
+    }
+
+    function pickFreeHoleIndex() {
+      var free = [];
+      for (var i = 0; i < holes.length; i++) {
+        if (!holes[i].up) free.push(i);
+      }
+      if (free.length === 0) return -1;
+      return free[Math.floor(Math.random() * free.length)];
+    }
+
+    function showMole(index, progress) {
+      var hole = holes[index];
+      hole.up = true;
+      hole.hit = false;
+      hole.golden = Math.random() < GOLDEN_CHANCE;
+      hole.moleEl.textContent = MOLE_EMOJIS[Math.floor(Math.random() * MOLE_EMOJIS.length)];
+      hole.wrapEl.classList.add('up');
+      if (hole.golden) hole.wrapEl.classList.add('golden');
+
+      var upTime = lerp(1100, 600, progress) * (hole.golden ? 0.7 : 1);
+      hole.hideTimer = setTimeout(function () {
+        hideMole(index);
+      }, upTime);
+    }
+
+    function hideMole(index) {
+      var hole = holes[index];
+      if (!hole.up) return;
+      hole.up = false;
+      hole.wrapEl.classList.remove('up');
+      hole.wrapEl.classList.remove('golden');
+      hole.wrapEl.classList.remove('hit');
+      if (hole.hideTimer) {
+        clearTimeout(hole.hideTimer);
+        hole.hideTimer = null;
+      }
+    }
+
+    function hideAllMoles() {
+      for (var i = 0; i < holes.length; i++) {
+        hideMole(i);
+      }
+    }
+
+    function spawnPop(cellEl, text) {
+      var pop = document.createElement('span');
+      pop.className = 'score-pop';
+      pop.textContent = text;
+      cellEl.appendChild(pop);
+      setTimeout(function () {
+        if (pop.parentNode) pop.parentNode.removeChild(pop);
+      }, 650);
+    }
+
+    function whackHole(index) {
+      if (!roundActive) return;
+      var hole = holes[index];
+      if (!hole.up || hole.hit) return;
+
+      hole.hit = true;
+      var points = hole.golden ? GOLDEN_POINTS : NORMAL_POINTS;
+      score += points;
+      updateScoreDisplay();
+      spawnPop(hole.cellEl, '+' + points);
+      hole.wrapEl.classList.add('hit');
+      hole.moleEl.textContent = '💫';
+
+      setTimeout(function () {
+        hideMole(index);
+      }, 140);
+    }
+
+    function scheduleNextSpawn() {
+      if (!roundActive) return;
+      var elapsed = Date.now() - roundStartTime;
+      var progress = Math.min(1, elapsed / ROUND_DURATION);
+      var delay = lerp(750, 320, progress) + Math.random() * 300;
+
+      spawnTimeout = setTimeout(function () {
+        trySpawnMole(progress);
+        scheduleNextSpawn();
+      }, delay);
+    }
+
+    function trySpawnMole(progress) {
+      if (!roundActive) return;
+      var maxConcurrent = progress > 0.5 ? 2 : 1;
+      if (countActiveMoles() >= maxConcurrent) return;
+      var index = pickFreeHoleIndex();
+      if (index === -1) return;
+      showMole(index, progress);
+    }
+
+    function tickTimer() {
+      var elapsed = Date.now() - roundStartTime;
+      var remaining = Math.max(0, ROUND_DURATION - elapsed);
+      updateTimerDisplay(Math.ceil(remaining / 1000));
+      if (remaining <= 0) endRound();
+    }
+
+    function startRound() {
+      if (roundActive) return;
+
+      score = 0;
+      updateScoreDisplay();
+      updateTimerDisplay(Math.ceil(ROUND_DURATION / 1000));
+      hideAllMoles();
+      document.getElementById('message').innerHTML = '';
+      roundActive = true;
+      roundStartTime = Date.now();
+
+      var startBtn = document.getElementById('start-btn');
+      startBtn.disabled = true;
+      startBtn.textContent = 'Playing...';
+
+      timerInterval = setInterval(tickTimer, 200);
+      scheduleNextSpawn();
+    }
+
+    function endRound() {
+      roundActive = false;
+      clearInterval(timerInterval);
+      if (spawnTimeout) clearTimeout(spawnTimeout);
+      hideAllMoles();
+
+      var isNewBest = false;
+      if (score > best) {
+        best = score;
+        isNewBest = true;
+        try {
+          localStorage.setItem(BEST_KEY, String(best));
+        } catch (e) { /* ignore storage errors */ }
+      }
+      updateBestDisplay();
+
+      var message = document.getElementById('message');
+      message.innerHTML =
+        '<span class="result-symbol">' + (isNewBest ? '🏆' : '🎉') + '</span>' +
+        '<span class="result-text">Score: ' + score + (isNewBest ? ' — New Best!' : '') + '</span>';
+
+      var startBtn = document.getElementById('start-btn');
+      startBtn.disabled = false;
+      startBtn.textContent = 'Play Again';
+    }
+
+    function loadBest() {
+      try {
+        var stored = localStorage.getItem(BEST_KEY);
+        best = stored ? parseInt(stored, 10) : 0;
+        if (isNaN(best)) best = 0;
+      } catch (e) {
+        best = 0;
+      }
+      updateBestDisplay();
+    }
+
+    document.getElementById('start-btn').addEventListener('click', startRound);
+    document.getElementById('start-btn').addEventListener('touchstart', function (event) {
+      event.preventDefault();
+      startRound();
+    });
+
+    buildBoard();
+    loadBest();
+  </script>
+  <script src="pwa.js"></script>
+</body>
+</html>
