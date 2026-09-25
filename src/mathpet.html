@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Math Pet - HTML Games</title>
+
+  <!-- PWA Meta Tags & Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4A90E2">
+
+  <!-- iOS / iPhone 5S PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Math Pet">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: calc(1rem + env(safe-area-inset-top, 0px)) calc(0.75rem + env(safe-area-inset-right, 0px)) calc(1rem + env(safe-area-inset-bottom, 0px)) calc(0.75rem + env(safe-area-inset-left, 0px));
+      background-color: #eaf4fc;
+      color: #333;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      overflow-x: hidden;
+    }
+    header {
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    h1 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1.6rem;
+      color: #2f8fd1;
+    }
+    a.back-link {
+      display: inline-block;
+      margin-bottom: 0.5rem;
+      color: #4A90E2;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .screen {
+      width: 100%;
+      max-width: 320px;
+    }
+
+    /* ---------- start screen ---------- */
+    .section-title {
+      text-align: center;
+      font-size: 1.05rem;
+      margin: 0 0 0.6rem 0;
+      color: #333;
+    }
+    .pet-picker {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .pet-btn {
+      background-color: #fff;
+      border: 2px solid #cfe3f5;
+      border-radius: 0.9rem;
+      padding: 0.6rem 0.25rem;
+      font-size: 1.8rem;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .pet-btn.selected {
+      border-color: #2f8fd1;
+      background-color: #dcedfa;
+    }
+    .level-list {
+      width: 100%;
+    }
+    .level-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+      text-align: left;
+      background-color: #fff;
+      border: 2px solid #cfe3f5;
+      border-radius: 0.9rem;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.6rem;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #333;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .level-btn:active {
+      background-color: #eaf4fc;
+    }
+    .level-sample {
+      font-weight: 400;
+      font-size: 0.85rem;
+      color: #666;
+      margin-top: 0.15rem;
+    }
+
+    /* ---------- game screen ---------- */
+    .pet-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+    .pet-stage {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 74px;
+    }
+    .pet-emoji {
+      font-size: 3.2rem;
+      line-height: 1;
+      animation: idle-bounce 2.4s ease-in-out infinite;
+    }
+    .pet-emoji.drinking {
+      animation: drink-bounce 0.35s ease-out;
+    }
+    @keyframes idle-bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    @keyframes drink-bounce {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.3); }
+      100% { transform: scale(1.05); }
+    }
+    .pet-msg {
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #4A90E2;
+      margin: 0.2rem 0 0 0;
+      min-height: 0.9rem;
+    }
+
+    .stat-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+    .stat-card {
+      border-radius: 0.75rem;
+      padding: 0.5rem 0.25rem;
+      text-align: center;
+      font-weight: 700;
+    }
+    .stat-card.credits {
+      background-color: #fff3cd;
+      color: #b8860b;
+    }
+    .stat-card.drinks {
+      background-color: #e0f7e9;
+      color: #2e8b57;
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+    .stat-num {
+      display: block;
+      font-size: 1.3rem;
+    }
+
+    .question {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin: 0.2rem 0 0.6rem 0;
+      color: #333;
+    }
+
+    .answers-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+      width: 100%;
+      margin-bottom: 0.6rem;
+    }
+    .answer-btn {
+      position: relative;
+      background-color: #fff;
+      border: 2px solid #cfe3f5;
+      border-radius: 0.9rem;
+      padding: 0.7rem 0.5rem;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #333;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .answer-btn:active {
+      background-color: #eaf4fc;
+    }
+    .answer-btn.correct {
+      background-color: #d7f5df;
+      border-color: #4ac16d;
+      color: #1f7a3d;
+    }
+    .answer-btn.wrong {
+      background-color: #fbdcdc;
+      border-color: #e0455f;
+      color: #a3223a;
+    }
+    .credit-pop {
+      position: absolute;
+      top: 6%;
+      left: 50%;
+      transform: translate(-50%, 0);
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #2f8fd1;
+      pointer-events: none;
+      animation: creditPop 0.65s ease-out forwards;
+      z-index: 5;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
+    }
+    @keyframes creditPop {
+      0% { opacity: 1; transform: translate(-50%, 0); }
+      100% { opacity: 0; transform: translate(-50%, -34px); }
+    }
+
+    .shop-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+    .shop-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #fff;
+      border: 2px solid #cfe3f5;
+      border-radius: 0.9rem;
+      padding: 0.6rem 0.25rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #333;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .shop-btn:active {
+      background-color: #eaf4fc;
+    }
+    .shop-btn:disabled {
+      opacity: 0.45;
+    }
+    .shop-icon {
+      font-size: 1.6rem;
+      margin-bottom: 0.2rem;
+    }
+    .shop-cost {
+      font-weight: 400;
+      color: #666;
+      font-size: 0.75rem;
+    }
+
+    .change-level-link {
+      display: block;
+      text-align: center;
+      margin-top: 0.4rem;
+      font-size: 0.8rem;
+      color: #4A90E2;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="back-link" href="index.html">&larr; Back to games</a>
+    <h1>Math Pet</h1>
+  </header>
+  <main>
+    <div id="screen-start" class="screen">
+      <h2 class="section-title">Pick your pet</h2>
+      <div class="pet-picker" id="pet-picker">
+        <button type="button" class="pet-btn" data-pet="&#128040;">&#128040;</button>
+        <button type="button" class="pet-btn" data-pet="&#128049;">&#128049;</button>
+        <button type="button" class="pet-btn" data-pet="&#128054;">&#128054;</button>
+        <button type="button" class="pet-btn" data-pet="&#128048;">&#128048;</button>
+      </div>
+      <h2 class="section-title">Pick a level</h2>
+      <div class="level-list">
+        <button type="button" class="level-btn" data-level="1">Level 1 &mdash; Adding<span class="level-sample">3 + 4</span></button>
+        <button type="button" class="level-btn" data-level="2">Level 2 &mdash; Add &amp; Take Away<span class="level-sample">27 + 15, 40 &minus; 12</span></button>
+        <button type="button" class="level-btn" data-level="3">Level 3 &mdash; Times Tables<span class="level-sample">6 &times; 7</span></button>
+      </div>
+    </div>
+
+    <div id="screen-game" class="screen hidden">
+      <div class="pet-panel">
+        <div class="pet-stage"><div id="pet-emoji" class="pet-emoji"></div></div>
+        <p id="pet-msg" class="pet-msg"></p>
+      </div>
+
+      <div class="stat-cards">
+        <div class="stat-card credits">
+          <span class="stat-label">Credits</span>
+          <span class="stat-num" id="value-credits">0</span>
+        </div>
+        <div class="stat-card drinks">
+          <span class="stat-label">Drinks</span>
+          <span class="stat-num" id="value-drinks">0</span>
+        </div>
+      </div>
+
+      <p class="question" id="question-text">? + ? = ?</p>
+
+      <div class="answers-grid">
+        <button type="button" class="answer-btn" id="answer-btn-0">0</button>
+        <button type="button" class="answer-btn" id="answer-btn-1">0</button>
+        <button type="button" class="answer-btn" id="answer-btn-2">0</button>
+        <button type="button" class="answer-btn" id="answer-btn-3">0</button>
+      </div>
+
+      <div class="shop-grid">
+        <button type="button" class="shop-btn" id="shop-water"><span class="shop-icon">&#128167;</span>Water<span class="shop-cost">3</span></button>
+        <button type="button" class="shop-btn" id="shop-juice"><span class="shop-icon">&#129475;</span>Juice<span class="shop-cost">6</span></button>
+        <button type="button" class="shop-btn" id="shop-smoothie"><span class="shop-icon">&#129380;</span>Smoothie<span class="shop-cost">10</span></button>
+      </div>
+
+      <a href="#" id="change-level-link" class="change-level-link">&larr; Change level</a>
+    </div>
+  </main>
+
+  <script>
+    var PETS = ['🐨', '🐱', '🐶', '🐰'];
+    var LEVEL_CREDITS = { 1: 1, 2: 2, 3: 3 };
+    var DRINKS = [
+      { key: 'water', btnId: 'shop-water', cost: 3, hearts: 1, icon: '💧' },
+      { key: 'juice', btnId: 'shop-juice', cost: 6, hearts: 2, icon: '🧃' },
+      { key: 'smoothie', btnId: 'shop-smoothie', cost: 10, hearts: 3, icon: '🥤' }
+    ];
+    var CORRECT_DELAY = 450;
+    var WRONG_DELAY = 900;
+    var DRINK_ANIM_MS = 700;
+    var THANK_YOU_MS = 1500;
+
+    var selectedPet = PETS[0];
+    var currentLevel = 1;
+    var credits = 0;
+    var drinksServed = 0;
+    var currentQuestion = null;
+    var currentChoices = [];
+    var locked = false;
+    var answerTimeoutId = null;
+    var drinkAnimTimeoutId = null;
+    var thankYouTimeoutId = null;
+
+    var startScreen = document.getElementById('screen-start');
+    var gameScreen = document.getElementById('screen-game');
+    var petEmojiEl = document.getElementById('pet-emoji');
+    var petMsgEl = document.getElementById('pet-msg');
+
+    function show(el) { el.classList.remove('hidden'); }
+    function hide(el) { el.classList.add('hidden'); }
+    function bindTap(el, fn) {
+      el.addEventListener('click', fn);
+      el.addEventListener('touchstart', function (event) {
+        event.preventDefault();
+        fn();
+      });
+    }
+    function randInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+    function shuffleArray(arr) {
+      for (var i = arr.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+      }
+      return arr;
+    }
+
+    /* ---------- question generation ---------- */
+
+    function makeQuestion(level) {
+      var a, b, op, answer;
+      if (level === 1) {
+        a = randInt(1, 9);
+        b = randInt(1, Math.max(1, 10 - a));
+        op = '+';
+        answer = a + b;
+      } else if (level === 2) {
+        if (Math.random() < 0.5) {
+          a = randInt(1, 49);
+          b = randInt(1, 50 - a);
+          op = '+';
+          answer = a + b;
+        } else {
+          a = randInt(10, 50);
+          b = randInt(0, a);
+          op = '−';
+          answer = a - b;
+        }
+      } else {
+        a = randInt(2, 9);
+        b = randInt(2, 9);
+        op = '×';
+        answer = a * b;
+      }
+      return { text: a + ' ' + op + ' ' + b, answer: answer, a: a, b: b, op: op };
+    }
+
+    function makeChoices(question) {
+      var answer = question.answer;
+      var used = {};
+      used[answer] = true;
+      var choices = [answer];
+
+      var deltas = [1, -1, 2, -2, 3, -3, 10, -10];
+      if (question.op === '×') {
+        deltas.push(question.a, -question.a, question.b, -question.b);
+      }
+      shuffleArray(deltas);
+
+      for (var i = 0; i < deltas.length && choices.length < 4; i++) {
+        var candidate = answer + deltas[i];
+        if (candidate >= 0 && !used[candidate]) {
+          used[candidate] = true;
+          choices.push(candidate);
+        }
+      }
+
+      var attempts = 0;
+      while (choices.length < 4 && attempts < 50) {
+        var extra = answer + randInt(-12, 12);
+        if (extra >= 0 && !used[extra]) {
+          used[extra] = true;
+          choices.push(extra);
+        }
+        attempts++;
+      }
+
+      return shuffleArray(choices);
+    }
+
+    /* ---------- pet picker ---------- */
+
+    function renderPetPicker() {
+      var buttons = document.getElementsByClassName('pet-btn');
+      for (var i = 0; i < buttons.length; i++) {
+        if (buttons[i].getAttribute('data-pet') === selectedPet) {
+          buttons[i].classList.add('selected');
+        } else {
+          buttons[i].classList.remove('selected');
+        }
+      }
+    }
+
+    /* ---------- game flow ---------- */
+
+    function startGame(level) {
+      currentLevel = level;
+      credits = 0;
+      drinksServed = 0;
+      locked = false;
+      if (answerTimeoutId) { clearTimeout(answerTimeoutId); answerTimeoutId = null; }
+      if (drinkAnimTimeoutId) { clearTimeout(drinkAnimTimeoutId); drinkAnimTimeoutId = null; }
+      if (thankYouTimeoutId) { clearTimeout(thankYouTimeoutId); thankYouTimeoutId = null; }
+
+      petEmojiEl.className = 'pet-emoji';
+      petEmojiEl.textContent = selectedPet;
+      renderCredits();
+      renderDrinksServed();
+      renderShop();
+      renderPetMsg();
+
+      hide(startScreen);
+      show(gameScreen);
+      nextQuestion();
+    }
+
+    function changeLevel() {
+      if (answerTimeoutId) { clearTimeout(answerTimeoutId); answerTimeoutId = null; }
+      if (drinkAnimTimeoutId) { clearTimeout(drinkAnimTimeoutId); drinkAnimTimeoutId = null; }
+      if (thankYouTimeoutId) { clearTimeout(thankYouTimeoutId); thankYouTimeoutId = null; }
+      hide(gameScreen);
+      show(startScreen);
+    }
+
+    function nextQuestion() {
+      locked = false;
+      currentQuestion = makeQuestion(currentLevel);
+      currentChoices = makeChoices(currentQuestion);
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      document.getElementById('question-text').textContent = currentQuestion.text + ' = ?';
+      for (var i = 0; i < 4; i++) {
+        var btn = document.getElementById('answer-btn-' + i);
+        btn.textContent = currentChoices[i];
+        btn.classList.remove('correct', 'wrong');
+      }
+    }
+
+    function handleAnswer(index) {
+      if (locked) return;
+      locked = true;
+
+      var btn = document.getElementById('answer-btn-' + index);
+      var chosen = currentChoices[index];
+
+      if (chosen === currentQuestion.answer) {
+        var gained = LEVEL_CREDITS[currentLevel];
+        credits += gained;
+        renderCredits();
+        renderShop();
+        renderPetMsg();
+        btn.classList.add('correct');
+        spawnPop(btn, '+' + gained);
+        answerTimeoutId = setTimeout(nextQuestion, CORRECT_DELAY);
+      } else {
+        btn.classList.add('wrong');
+        for (var i = 0; i < 4; i++) {
+          if (currentChoices[i] === currentQuestion.answer) {
+            document.getElementById('answer-btn-' + i).classList.add('correct');
+            break;
+          }
+        }
+        answerTimeoutId = setTimeout(nextQuestion, WRONG_DELAY);
+      }
+    }
+
+    function spawnPop(el, text) {
+      var pop = document.createElement('span');
+      pop.className = 'credit-pop';
+      pop.textContent = text;
+      el.appendChild(pop);
+      setTimeout(function () {
+        if (pop.parentNode) pop.parentNode.removeChild(pop);
+      }, 650);
+    }
+
+    /* ---------- pet message ---------- */
+
+    function renderPetMsg() {
+      if (thankYouTimeoutId) return;
+      var cheapest = DRINKS[0];
+      if (credits >= cheapest.cost) {
+        petMsgEl.textContent = 'Your pet would love a drink! Tap one below.';
+      } else {
+        var gained = LEVEL_CREDITS[currentLevel];
+        var more = Math.ceil((cheapest.cost - credits) / gained);
+        petMsgEl.textContent = 'Solve ' + more + ' more for ' + cheapest.icon + ' water';
+      }
+    }
+
+    /* ---------- drink shop ---------- */
+
+    function renderShop() {
+      for (var i = 0; i < DRINKS.length; i++) {
+        var drink = DRINKS[i];
+        document.getElementById(drink.btnId).disabled = credits < drink.cost;
+      }
+    }
+
+    function buyDrink(drink) {
+      if (credits < drink.cost) return;
+      credits -= drink.cost;
+      drinksServed += 1;
+      renderCredits();
+      renderDrinksServed();
+      renderShop();
+      playDrinkAnimation(drink);
+    }
+
+    function playDrinkAnimation(drink) {
+      if (drinkAnimTimeoutId) clearTimeout(drinkAnimTimeoutId);
+      if (thankYouTimeoutId) clearTimeout(thankYouTimeoutId);
+      petEmojiEl.classList.remove('drinking');
+      petEmojiEl.textContent = drink.icon;
+      /* force reflow so the bounce animation restarts on repeat taps */
+      void petEmojiEl.offsetWidth;
+      petEmojiEl.classList.add('drinking');
+      spawnPop(document.querySelector('.pet-stage'), '💕'.repeat(drink.hearts));
+      petMsgEl.textContent = 'Yum! Thank you! 💕';
+      drinkAnimTimeoutId = setTimeout(function () {
+        petEmojiEl.classList.remove('drinking');
+        petEmojiEl.textContent = selectedPet;
+        drinkAnimTimeoutId = null;
+      }, DRINK_ANIM_MS);
+      thankYouTimeoutId = setTimeout(function () {
+        thankYouTimeoutId = null;
+        renderPetMsg();
+      }, THANK_YOU_MS);
+    }
+
+    /* ---------- stat displays ---------- */
+
+    function renderCredits() {
+      document.getElementById('value-credits').textContent = credits;
+    }
+
+    function renderDrinksServed() {
+      document.getElementById('value-drinks').textContent = drinksServed;
+    }
+
+    /* ---------- bindings ---------- */
+
+    var petButtons = document.getElementsByClassName('pet-btn');
+    for (var pi = 0; pi < petButtons.length; pi++) {
+      (function (btn) {
+        bindTap(btn, function () {
+          selectedPet = btn.getAttribute('data-pet');
+          renderPetPicker();
+        });
+      })(petButtons[pi]);
+    }
+
+    var levelButtons = document.getElementsByClassName('level-btn');
+    for (var li = 0; li < levelButtons.length; li++) {
+      (function (btn) {
+        bindTap(btn, function () {
+          startGame(parseInt(btn.getAttribute('data-level'), 10));
+        });
+      })(levelButtons[li]);
+    }
+
+    for (var ai = 0; ai < 4; ai++) {
+      (function (index) {
+        bindTap(document.getElementById('answer-btn-' + index), function () {
+          handleAnswer(index);
+        });
+      })(ai);
+    }
+
+    for (var di = 0; di < DRINKS.length; di++) {
+      (function (drink) {
+        bindTap(document.getElementById(drink.btnId), function () {
+          buyDrink(drink);
+        });
+      })(DRINKS[di]);
+    }
+
+    document.getElementById('change-level-link').addEventListener('click', function (event) {
+      event.preventDefault();
+      changeLevel();
+    });
+
+    renderPetPicker();
+  </script>
+  <script src="pwa.js"></script>
+</body>
+</html>
