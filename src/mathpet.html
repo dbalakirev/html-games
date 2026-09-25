@@ -84,6 +84,12 @@
     .pet-btn.selected {
       border-color: #2f8fd1;
       background-color: #dcedfa;
+      animation: pick-pop 0.3s ease-out;
+    }
+    @keyframes pick-pop {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.12); }
+      100% { transform: scale(1); }
     }
     .level-list {
       width: 100%;
@@ -126,27 +132,189 @@
     }
     .pet-stage {
       position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 74px;
+      width: 100%;
+      height: 124px;
+      overflow: hidden;
+      border-radius: 1rem;
+      background: linear-gradient(to bottom, #9fd4f7 0%, #d4ecfb 70%, #eaf4fc 100%);
+    }
+    .scene-sun {
+      position: absolute;
+      top: 46px;
+      left: 58px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff7b8 0%, #ffd84a 70%, #ffc93a 100%);
+      animation: sun-glow 4s ease-in-out infinite;
+    }
+    @keyframes sun-glow {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.1); opacity: 1; }
+    }
+    .scene-cloud {
+      position: absolute;
+      left: 0;
+      width: 46px;
+      height: 14px;
+      border-radius: 8px;
+      background-color: #fff;
+      opacity: 0.9;
+      animation: cloud-drift 38s linear infinite;
+    }
+    .scene-cloud::before,
+    .scene-cloud::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      background-color: #fff;
+    }
+    .scene-cloud::before {
+      left: 7px;
+      top: -10px;
+      width: 20px;
+      height: 20px;
+    }
+    .scene-cloud::after {
+      left: 22px;
+      top: -6px;
+      width: 15px;
+      height: 15px;
+    }
+    .scene-cloud.c1 { top: 22px; animation-delay: -8s; }
+    .scene-cloud.c2 { top: 48px; animation-duration: 52s; animation-delay: -30s; opacity: 0.7; }
+    @keyframes cloud-drift {
+      0% { transform: translateX(-60px); }
+      100% { transform: translateX(340px); }
+    }
+    .scene-ground {
+      position: absolute;
+      left: -10%;
+      bottom: 0;
+      width: 120%;
+      height: 26px;
+      border-radius: 50% 50% 0 0 / 14px 14px 0 0;
+      background: linear-gradient(to bottom, #9ada7f 0%, #6cbf5c 100%);
+    }
+    .pet-shadow {
+      position: absolute;
+      left: 50%;
+      bottom: 10px;
+      width: 54px;
+      height: 10px;
+      margin-left: -27px;
+      border-radius: 50%;
+      background-color: rgba(0, 0, 0, 0.18);
+      animation: shadow-hop 2.4s ease-in-out infinite;
+    }
+    @keyframes shadow-hop {
+      0%, 15%, 85%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(0.7); opacity: 0.6; }
+    }
+    .pet-wrap {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 12px;
+      text-align: center;
+      transform-origin: 50% 100%;
     }
     .pet-emoji {
-      font-size: 3.2rem;
+      display: inline-block;
+      font-size: 4rem;
       line-height: 1;
-      animation: idle-bounce 2.4s ease-in-out infinite;
+      transform-origin: 50% 100%;
+      animation: idle-hop 2.4s ease-in-out infinite;
     }
-    .pet-emoji.drinking {
-      animation: drink-bounce 0.35s ease-out;
+    @keyframes idle-hop {
+      0%, 100% { transform: translateY(0) scale(1.06, 0.94); }
+      15% { transform: translateY(0) scale(1, 1); }
+      50% { transform: translateY(-10px) scale(0.97, 1.03); }
+      85% { transform: translateY(0) scale(1, 1); }
     }
-    @keyframes idle-bounce {
+    .pet-wrap.happy {
+      animation: happy-hop 0.45s ease-out;
+    }
+    @keyframes happy-hop {
+      0%, 50%, 100% { transform: translateY(0); }
+      25% { transform: translateY(-16px); }
+      75% { transform: translateY(-8px); }
+    }
+    .pet-wrap.sad {
+      animation: sad-wobble 0.6s ease-in-out;
+    }
+    @keyframes sad-wobble {
+      0%, 100% { transform: rotate(0) translateY(0); }
+      20% { transform: rotate(-8deg) translateY(2px); }
+      45% { transform: rotate(7deg) translateY(3px); }
+      70% { transform: rotate(-4deg) translateY(2px); }
+    }
+    .pet-wrap.drinking {
+      animation: gulp 0.7s ease-in-out;
+    }
+    @keyframes gulp {
+      0%, 100% { transform: scale(1); }
+      16%, 50%, 84% { transform: scale(1.14, 1.1); }
+      33%, 67% { transform: scale(0.98, 1); }
+    }
+    .pet-bubble {
+      position: absolute;
+      left: 50%;
+      bottom: 72px;
+      width: 32px;
+      height: 32px;
+      margin-left: 26px;
+      border-radius: 50%;
+      background-color: #fff;
+      font-size: 1.05rem;
+      line-height: 32px;
+      text-align: center;
+      opacity: 0;
+      transform: scale(0.4);
+      transition: opacity 0.25s, transform 0.25s;
+    }
+    .pet-bubble::after {
+      content: '';
+      position: absolute;
+      left: 2px;
+      bottom: -5px;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background-color: #fff;
+    }
+    .pet-stage.wants .pet-bubble {
+      opacity: 1;
+      transform: scale(1);
+      animation: bubble-float 1.8s ease-in-out infinite;
+    }
+    @keyframes bubble-float {
       0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
+      50% { transform: translateY(-4px); }
     }
-    @keyframes drink-bounce {
-      0% { transform: scale(1); }
-      40% { transform: scale(1.3); }
-      100% { transform: scale(1.05); }
+    .particle {
+      position: absolute;
+      bottom: 56px;
+      left: 50%;
+      font-size: 1.1rem;
+      pointer-events: none;
+      animation: float-up 1s ease-out both;
+    }
+    @keyframes float-up {
+      0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+      15% { opacity: 1; transform: translate(-3px, -8px) scale(1); }
+      50% { transform: translate(4px, -32px) scale(1); }
+      100% { opacity: 0; transform: translate(-2px, -62px) scale(0.9); }
+    }
+    .drink-fly {
+      position: fixed;
+      left: 0;
+      top: 0;
+      font-size: 1.6rem;
+      line-height: 1;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 20;
     }
     .pet-msg {
       text-align: center;
@@ -157,37 +325,36 @@
       min-height: 0.9rem;
     }
 
-    .stat-cards {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.5rem;
-      width: 100%;
-      margin-bottom: 0.5rem;
-    }
     .stat-card {
-      border-radius: 0.75rem;
-      padding: 0.5rem 0.25rem;
+      position: absolute;
+      top: 6px;
+      border-radius: 0.6rem;
+      padding: 0.2rem 0.55rem;
       text-align: center;
       font-weight: 700;
+      z-index: 2;
     }
     .stat-card.credits {
-      background-color: #fff3cd;
+      left: 6px;
+      background-color: rgba(255, 243, 205, 0.92);
       color: #b8860b;
     }
     .stat-card.drinks {
-      background-color: #e0f7e9;
+      right: 6px;
+      background-color: rgba(224, 247, 233, 0.92);
       color: #2e8b57;
     }
     .stat-label {
       display: block;
-      font-size: 0.75rem;
+      font-size: 0.6rem;
       letter-spacing: 0.05em;
       text-transform: uppercase;
       opacity: 0.8;
     }
     .stat-num {
       display: block;
-      font-size: 1.3rem;
+      font-size: 1.05rem;
+      line-height: 1.1;
     }
 
     .question {
@@ -321,19 +488,24 @@
 
     <div id="screen-game" class="screen hidden">
       <div class="pet-panel">
-        <div class="pet-stage"><div id="pet-emoji" class="pet-emoji"></div></div>
+        <div class="pet-stage" id="pet-stage">
+          <div class="scene-sun"></div>
+          <div class="scene-cloud c1"></div>
+          <div class="scene-cloud c2"></div>
+          <div class="scene-ground"></div>
+          <div class="pet-shadow"></div>
+          <div class="stat-card credits">
+            <span class="stat-label">Credits</span>
+            <span class="stat-num" id="value-credits">0</span>
+          </div>
+          <div class="stat-card drinks">
+            <span class="stat-label">Drinks</span>
+            <span class="stat-num" id="value-drinks">0</span>
+          </div>
+          <div id="pet-wrap" class="pet-wrap"><div id="pet-emoji" class="pet-emoji"></div></div>
+          <div class="pet-bubble">&#128167;</div>
+        </div>
         <p id="pet-msg" class="pet-msg"></p>
-      </div>
-
-      <div class="stat-cards">
-        <div class="stat-card credits">
-          <span class="stat-label">Credits</span>
-          <span class="stat-num" id="value-credits">0</span>
-        </div>
-        <div class="stat-card drinks">
-          <span class="stat-label">Drinks</span>
-          <span class="stat-num" id="value-drinks">0</span>
-        </div>
       </div>
 
       <p class="question" id="question-text">? + ? = ?</p>
@@ -354,6 +526,7 @@
       <a href="#" id="change-level-link" class="change-level-link">&larr; Change level</a>
     </div>
   </main>
+  <span id="drink-fly" class="drink-fly"></span>
 
   <script>
     var PETS = ['🐨', '🐱', '🐶', '🐰'];
@@ -365,7 +538,10 @@
     ];
     var CORRECT_DELAY = 450;
     var WRONG_DELAY = 900;
+    var DRINK_FLY_MS = 350;
     var DRINK_ANIM_MS = 700;
+    var HAPPY_ANIM_MS = 450;
+    var SAD_ANIM_MS = 600;
     var THANK_YOU_MS = 1500;
 
     var selectedPet = PETS[0];
@@ -378,10 +554,14 @@
     var answerTimeoutId = null;
     var drinkAnimTimeoutId = null;
     var thankYouTimeoutId = null;
+    var petAnimTimeoutId = null;
 
     var startScreen = document.getElementById('screen-start');
     var gameScreen = document.getElementById('screen-game');
     var petEmojiEl = document.getElementById('pet-emoji');
+    var petWrapEl = document.getElementById('pet-wrap');
+    var petStageEl = document.getElementById('pet-stage');
+    var drinkFlyEl = document.getElementById('drink-fly');
     var petMsgEl = document.getElementById('pet-msg');
 
     function show(el) { el.classList.remove('hidden'); }
@@ -492,6 +672,9 @@
       if (answerTimeoutId) { clearTimeout(answerTimeoutId); answerTimeoutId = null; }
       if (drinkAnimTimeoutId) { clearTimeout(drinkAnimTimeoutId); drinkAnimTimeoutId = null; }
       if (thankYouTimeoutId) { clearTimeout(thankYouTimeoutId); thankYouTimeoutId = null; }
+      if (petAnimTimeoutId) { clearTimeout(petAnimTimeoutId); petAnimTimeoutId = null; }
+      petWrapEl.className = 'pet-wrap';
+      drinkFlyEl.style.opacity = '0';
 
       petEmojiEl.className = 'pet-emoji';
       petEmojiEl.textContent = selectedPet;
@@ -509,6 +692,9 @@
       if (answerTimeoutId) { clearTimeout(answerTimeoutId); answerTimeoutId = null; }
       if (drinkAnimTimeoutId) { clearTimeout(drinkAnimTimeoutId); drinkAnimTimeoutId = null; }
       if (thankYouTimeoutId) { clearTimeout(thankYouTimeoutId); thankYouTimeoutId = null; }
+      if (petAnimTimeoutId) { clearTimeout(petAnimTimeoutId); petAnimTimeoutId = null; }
+      petWrapEl.className = 'pet-wrap';
+      drinkFlyEl.style.opacity = '0';
       hide(gameScreen);
       show(startScreen);
     }
@@ -544,6 +730,8 @@
         renderPetMsg();
         btn.classList.add('correct');
         spawnPop(btn, '+' + gained);
+        playPetAnim('happy', HAPPY_ANIM_MS);
+        spawnParticles('✨', 1);
         answerTimeoutId = setTimeout(nextQuestion, CORRECT_DELAY);
       } else {
         btn.classList.add('wrong');
@@ -553,6 +741,7 @@
             break;
           }
         }
+        playPetAnim('sad', SAD_ANIM_MS);
         answerTimeoutId = setTimeout(nextQuestion, WRONG_DELAY);
       }
     }
@@ -565,6 +754,36 @@
       setTimeout(function () {
         if (pop.parentNode) pop.parentNode.removeChild(pop);
       }, 650);
+    }
+
+    /* ---------- pet animations ---------- */
+
+    function playPetAnim(cls, ms) {
+      petWrapEl.classList.remove('happy', 'sad', 'drinking');
+      /* force reflow so the animation restarts on repeat triggers */
+      void petWrapEl.offsetWidth;
+      petWrapEl.classList.add(cls);
+      if (petAnimTimeoutId) clearTimeout(petAnimTimeoutId);
+      petAnimTimeoutId = setTimeout(function () {
+        petWrapEl.classList.remove(cls);
+        petAnimTimeoutId = null;
+      }, ms);
+    }
+
+    function spawnParticles(glyph, count) {
+      for (var i = 0; i < count; i++) {
+        (function (delay) {
+          var p = document.createElement('span');
+          p.className = 'particle';
+          p.textContent = glyph;
+          p.style.marginLeft = (randInt(-40, 30)) + 'px';
+          p.style.animationDelay = delay + 'ms';
+          petStageEl.appendChild(p);
+          setTimeout(function () {
+            if (p.parentNode) p.parentNode.removeChild(p);
+          }, 1000 + delay);
+        })(i * 120);
+      }
     }
 
     /* ---------- pet message ---------- */
@@ -603,18 +822,29 @@
     function playDrinkAnimation(drink) {
       if (drinkAnimTimeoutId) clearTimeout(drinkAnimTimeoutId);
       if (thankYouTimeoutId) clearTimeout(thankYouTimeoutId);
-      petEmojiEl.classList.remove('drinking');
-      petEmojiEl.textContent = drink.icon;
-      /* force reflow so the bounce animation restarts on repeat taps */
-      void petEmojiEl.offsetWidth;
-      petEmojiEl.classList.add('drinking');
-      spawnPop(document.querySelector('.pet-stage'), '💕'.repeat(drink.hearts));
+
+      /* fly the drink from its shop button to the pet's mouth */
+      var from = document.getElementById(drink.btnId).querySelector('.shop-icon').getBoundingClientRect();
+      var to = petEmojiEl.getBoundingClientRect();
+      drinkFlyEl.textContent = drink.icon;
+      drinkFlyEl.style.transition = 'none';
+      drinkFlyEl.style.left = from.left + 'px';
+      drinkFlyEl.style.top = from.top + 'px';
+      drinkFlyEl.style.transform = 'translate(0, 0)';
+      drinkFlyEl.style.opacity = '1';
+      void drinkFlyEl.offsetWidth;
+      var dx = to.left + to.width * 0.5 - from.left - from.width * 0.5;
+      var dy = to.top + to.height * 0.55 - from.top - from.height * 0.5;
+      drinkFlyEl.style.transition = 'transform ' + DRINK_FLY_MS + 'ms ease-in';
+      drinkFlyEl.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) scale(0.6)';
+
       petMsgEl.textContent = 'Yum! Thank you! 💕';
       drinkAnimTimeoutId = setTimeout(function () {
-        petEmojiEl.classList.remove('drinking');
-        petEmojiEl.textContent = selectedPet;
+        drinkFlyEl.style.opacity = '0';
+        playPetAnim('drinking', DRINK_ANIM_MS);
+        spawnParticles('💕', drink.hearts * 2);
         drinkAnimTimeoutId = null;
-      }, DRINK_ANIM_MS);
+      }, DRINK_FLY_MS);
       thankYouTimeoutId = setTimeout(function () {
         thankYouTimeoutId = null;
         renderPetMsg();
@@ -625,6 +855,11 @@
 
     function renderCredits() {
       document.getElementById('value-credits').textContent = credits;
+      if (credits >= DRINKS[0].cost) {
+        petStageEl.classList.add('wants');
+      } else {
+        petStageEl.classList.remove('wants');
+      }
     }
 
     function renderDrinksServed() {
