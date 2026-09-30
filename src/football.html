@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Find the Space - HTML Games</title>
+
+  <!-- PWA Meta Tags & Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4A90E2">
+
+  <!-- iOS / iPhone 5S PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Find the Space">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: calc(0.5rem + env(safe-area-inset-top, 0px)) calc(0.75rem + env(safe-area-inset-right, 0px)) calc(0.5rem + env(safe-area-inset-bottom, 0px)) calc(0.75rem + env(safe-area-inset-left, 0px));
+      background-color: #eef3fb;
+      color: #333;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      overflow-x: hidden;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 0.4rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: #4A90E2;
+    }
+    a.back-link {
+      display: inline-block;
+      margin-bottom: 0.25rem;
+      color: #4A90E2;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* No flex `gap` anywhere: it needs Safari 14.1, we target Safari 12. */
+    #hud {
+      display: flex;
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto 0.35rem auto;
+    }
+    .hud-item {
+      flex: 1;
+      text-align: center;
+      padding: 0.3rem 0.15rem;
+      background-color: #fff;
+      border-radius: 0.6rem;
+      margin-right: 0.4rem;
+    }
+    .hud-item:last-child {
+      margin-right: 0;
+    }
+    .hud-label {
+      display: block;
+      font-size: 0.62rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #7b8794;
+    }
+    .hud-value {
+      display: block;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #2d3a4a;
+    }
+
+    #status {
+      min-height: 1.1rem;
+      margin-bottom: 0.3rem;
+      font-size: 0.85rem;
+      color: #556;
+      text-align: center;
+    }
+
+    #stage {
+      width: 100%;
+      text-align: center;
+    }
+    #game {
+      display: block;
+      margin: 0 auto;
+      border-radius: 0.5rem;
+      touch-action: none;
+    }
+
+    #panel {
+      width: 100%;
+      max-width: 400px;
+      margin: 0.45rem auto 0 auto;
+    }
+    #panel:empty {
+      margin: 0;
+    }
+    .card {
+      background-color: #fff;
+      border-radius: 0.6rem;
+      padding: 0.7rem 0.9rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    }
+    .outcome {
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin-bottom: 0.15rem;
+    }
+    .outcome-goal { color: #2c9e4a; }
+    .outcome-saved { color: #d98f1f; }
+    .outcome-lost { color: #d94f4f; }
+    .points {
+      font-size: 0.85rem;
+      color: #556;
+      margin-bottom: 0.4rem;
+    }
+    ul.reasons {
+      margin: 0 0 0.6rem 0;
+      padding-left: 1.1rem;
+      font-size: 0.85rem;
+      color: #445;
+    }
+    ul.reasons li {
+      margin-bottom: 0.2rem;
+    }
+    button {
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 0.55rem 1.3rem;
+      border: none;
+      border-radius: 999px;
+      background-color: #4ac16d;
+      color: #fff;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    button:active {
+      background-color: #3a9c56;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      margin-top: 0.5rem;
+      width: 100%;
+      max-width: 400px;
+    }
+    button.btn-toggle {
+      background-color: #eef1f6;
+      color: #445;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.4rem 0.8rem;
+      margin-right: 0.5rem;
+    }
+    button.btn-toggle:last-child {
+      margin-right: 0;
+    }
+    button.btn-toggle:active {
+      background-color: #dde2ec;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="back-link" href="index.html">&larr; Back to games</a>
+    <h1>Find the Space</h1>
+  </header>
+  <main>
+    <div id="hud">
+      <div class="hud-item">
+        <span class="hud-label">Round</span>
+        <span class="hud-value" id="round-value">1/10</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Score</span>
+        <span class="hud-value" id="score-value">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Best</span>
+        <span class="hud-value" id="best-value">0</span>
+      </div>
+    </div>
+
+    <div id="status">Tap the pitch to choose your run.</div>
+
+    <div id="stage">
+      <canvas id="game"></canvas>
+    </div>
+
+    <div id="panel"></div>
+
+    <div class="controls">
+      <button type="button" class="btn-toggle" id="anim-btn">Anim: On</button>
+      <button type="button" class="btn-toggle" id="zone-btn">Zone: On</button>
+    </div>
+  </main>
+
+  <script>
+    /* ================= tunable config ================= */
+
+    var CONFIG = {
+      /* factor weights (0..1 factor score * weight, averaged by W_SUM) */
+      W_ANGLE: 1.2,
+      W_SHOT_DIST: 1.0,
+      W_GK_OPEN: 0.9,
+      W_LANE: 1.6,
+      W_DEF_SPACE: 0.8,
+      W_BLIND: 1.0,
+      W_DIAGONAL: 0.9,
+      W_PASS_DIST: 0.8,
+      W_2V1: 1.1,
+
+      ANGLE_NORM: 1.0,            /* radians for a "wide enough" shooting angle */
+      KEEPER_ANGLE_NORM: 0.5,     /* radians of keeper being off the shot line */
+      DIAGONAL_NORM: Math.PI / 2,
+      TWO_V_ONE_NORM: 1.745,      /* ~100 degrees */
+      DEF_SPACE_NORM: 14,
+
+      SHOT_MIN: 2, SHOT_IDEAL_LO: 7, SHOT_IDEAL_HI: 16, SHOT_MAX: 30,
+      PASS_MIN: 2, PASS_IDEAL_LO: 8, PASS_IDEAL_HI: 18, PASS_MAX: 38,
+
+      LANE_BLOCK_DIST: 1.5,       /* defender this close to the pass line: always intercepted */
+      LANE_SAFE_DIST: 5,          /* defender this far or more: lane fully clear */
+
+      GOAL_THRESHOLD: 0.68,
+      SHOT_THRESHOLD: 0.45,
+
+      GRID_STEP: 1.5,             /* metres, used for both rejection sampling and the heatmap */
+
+      TOTAL_ROUNDS: 10
+    };
+    CONFIG.W_SUM = CONFIG.W_ANGLE + CONFIG.W_SHOT_DIST + CONFIG.W_GK_OPEN + CONFIG.W_LANE +
+      CONFIG.W_DEF_SPACE + CONFIG.W_BLIND + CONFIG.W_DIAGONAL + CONFIG.W_PASS_DIST + CONFIG.W_2V1;
+
+    var POINTS = { GOAL: 3, SAVED: 1, LOST: 0 };
+    var OUTCOME_TITLE = { GOAL: 'GOAL!', SAVED: 'SO CLOSE!', LOST: 'INTERCEPTED!' };
+
+    /* animation phase durations, seconds */
+    var D = { DROP: 0.30, PASS: 0.55, SHOT: 0.35, IMPACT: 0.45, SAVE: 0.35, FLASH: 0.40 };
+
+    var STORAGE_KEY = 'football-best';
+    var ANIM_KEY = 'football-anim';
+
+    /* pitch geometry, metres. Goal sits at y = 0, the pitch runs to y = WORLD_H away from goal. */
+    var WORLD_W = 48;
+    var WORLD_H = 44;
+    var NET_DEPTH = 2.2;
+    var GOAL_HALF = 3.66;
+    var GOAL_LEFT = { x: -GOAL_HALF, y: 0 };
+    var GOAL_RIGHT = { x: GOAL_HALF, y: 0 };
+    var GOAL_CENTER = { x: 0, y: 0 };
+
+    /* ================= math helpers ================= */
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    function rand(min, max) { return min + Math.random() * (max - min); }
+    function dist(a, b) { return Math.hypot(b.x - a.x, b.y - a.y); }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function lerpPoint(a, b, t) { return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) }; }
+
+    function easeOutQuad(t) { return 1 - (1 - t) * (1 - t); }
+    function easeInOutQuad(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+    function easeOutBack(t) {
+      var c1 = 1.70158, c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    }
+
+    function bezier2(p0, p1, p2, t) {
+      var mt = 1 - t;
+      return {
+        x: mt * mt * p0.x + 2 * mt * t * p1.x + t * t * p2.x,
+        y: mt * mt * p0.y + 2 * mt * t * p1.y + t * t * p2.y
+      };
+    }
+
+    function perpOffset(p0, p2, amount) {
+      var dx = p2.x - p0.x, dy = p2.y - p0.y;
+      var len = Math.hypot(dx, dy) || 1;
+      var nx = -dy / len, ny = dx / len;
+      var mid = { x: (p0.x + p2.x) / 2, y: (p0.y + p2.y) / 2 };
+      return { x: mid.x + nx * amount, y: mid.y + ny * amount };
+    }
+
+    function leanOffset(from, to, t) {
+      var amount = Math.sin(clamp(t, 0, 1) * Math.PI) * 0.35;
+      var dx = to.x - from.x, dy = to.y - from.y;
+      var len = Math.hypot(dx, dy) || 1;
+      return { x: (dx / len) * amount, y: (dy / len) * amount };
+    }
+
+    /* angle at `vertex` between rays to `a` and to `b`, in radians 0..PI */
+    function angleAt(vertex, a, b) {
+      var v1x = a.x - vertex.x, v1y = a.y - vertex.y;
+      var v2x = b.x - vertex.x, v2y = b.y - vertex.y;
+      var m1 = Math.hypot(v1x, v1y), m2 = Math.hypot(v2x, v2y);
+      if (m1 < 1e-6 || m2 < 1e-6) return 0;
+      var cos = clamp((v1x * v2x + v1y * v2y) / (m1 * m2), -1, 1);
+      return Math.acos(cos);
+    }
+
+    /* shortest distance from point p to segment a-b, plus the closest point on it */
+    function pointSegmentDist(p, a, b) {
+      var dx = b.x - a.x, dy = b.y - a.y;
+      var len2 = dx * dx + dy * dy;
+      var t = len2 > 1e-9 ? ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2 : 0;
+      t = clamp(t, 0, 1);
+      var cx = a.x + t * dx, cy = a.y + t * dy;
+      return { dist: Math.hypot(p.x - cx, p.y - cy), point: { x: cx, y: cy } };
+    }
+
+    /* a plateau score: 0 below hardMin/above hardMax, 1 across the ideal band, ramps between */
+    function plateauScore(value, hardMin, idealLo, idealHi, hardMax) {
+      if (value <= hardMin || value >= hardMax) return 0;
+      if (value >= idealLo && value <= idealHi) return 1;
+      if (value < idealLo) return (value - hardMin) / (idealLo - hardMin);
+      return (hardMax - value) / (hardMax - idealHi);
+    }
+
+    /* ================= evaluation ================= */
+    /* Every factor is a pure function returning 0..1. `evaluate()` combines them
+       into a weighted total and, separately, applies the hard "lane blocked"
+       and "pass too far" rules that force a lost ball regardless of the total. */
+
+    function scoreShootingAngle(me) {
+      return clamp(angleAt(me, GOAL_LEFT, GOAL_RIGHT) / CONFIG.ANGLE_NORM, 0, 1);
+    }
+
+    function scoreShotDistance(me) {
+      return plateauScore(me.y, CONFIG.SHOT_MIN, CONFIG.SHOT_IDEAL_LO, CONFIG.SHOT_IDEAL_HI, CONFIG.SHOT_MAX);
+    }
+
+    function scoreKeeperOpen(scn, me) {
+      /* small angle between "me -> keeper" and "me -> goal centre" means the
+         keeper is sat right on the shot line and well positioned to save it */
+      return clamp(angleAt(me, scn.gk, GOAL_CENTER) / CONFIG.KEEPER_ANGLE_NORM, 0, 1);
+    }
+
+    function scoreDefenderSpace(scn, me) {
+      return clamp(dist(scn.def, me) / CONFIG.DEF_SPACE_NORM, 0, 1);
+    }
+
+    function scoreBlindSide(scn, me) {
+      /* the defender is watching the ball (team), so a wide angle between
+         "def -> team" and "def -> me" means me is out of their eyeline */
+      return clamp(angleAt(scn.def, scn.team, me) / Math.PI, 0, 1);
+    }
+
+    function scoreDiagonal(scn, me) {
+      return clamp(angleAt(scn.team, scn.def, me) / CONFIG.DIAGONAL_NORM, 0, 1);
+    }
+
+    function scorePassDistance(scn, me) {
+      return plateauScore(dist(scn.team, me), CONFIG.PASS_MIN, CONFIG.PASS_IDEAL_LO, CONFIG.PASS_IDEAL_HI, CONFIG.PASS_MAX);
+    }
+
+    function score2v1(scn, me) {
+      return clamp(angleAt(scn.def, scn.team, me) / CONFIG.TWO_V_ONE_NORM, 0, 1);
+    }
+
+    function evaluate(scn, me) {
+      var lane = pointSegmentDist(scn.def, scn.team, me);
+      var passDist = dist(scn.team, me);
+
+      var factors = {
+        angle: scoreShootingAngle(me),
+        shotDist: scoreShotDistance(me),
+        gkOpen: scoreKeeperOpen(scn, me),
+        lane: clamp((lane.dist - CONFIG.LANE_BLOCK_DIST) / (CONFIG.LANE_SAFE_DIST - CONFIG.LANE_BLOCK_DIST), 0, 1),
+        defSpace: scoreDefenderSpace(scn, me),
+        blind: scoreBlindSide(scn, me),
+        diagonal: scoreDiagonal(scn, me),
+        passDist: scorePassDistance(scn, me),
+        twoVOne: score2v1(scn, me)
+      };
+
+      var total = (
+        factors.angle * CONFIG.W_ANGLE +
+        factors.shotDist * CONFIG.W_SHOT_DIST +
+        factors.gkOpen * CONFIG.W_GK_OPEN +
+        factors.lane * CONFIG.W_LANE +
+        factors.defSpace * CONFIG.W_DEF_SPACE +
+        factors.blind * CONFIG.W_BLIND +
+        factors.diagonal * CONFIG.W_DIAGONAL +
+        factors.passDist * CONFIG.W_PASS_DIST +
+        factors.twoVOne * CONFIG.W_2V1
+      ) / CONFIG.W_SUM;
+
+      var laneBlocked = lane.dist < CONFIG.LANE_BLOCK_DIST;
+      var tooFarPass = passDist > CONFIG.PASS_MAX;
+
+      var outcome;
+      if (laneBlocked || tooFarPass) {
+        outcome = 'LOST';
+      } else if (total >= CONFIG.GOAL_THRESHOLD) {
+        outcome = 'GOAL';
+      } else if (total >= CONFIG.SHOT_THRESHOLD) {
+        outcome = 'SAVED';
+      } else {
+        outcome = 'LOST';
+      }
+
+      return { total: total, factors: factors, outcome: outcome, laneBlocked: laneBlocked, interceptPoint: lane.point };
+    }
+
+    var FACTOR_META = [
+      { key: 'angle', good: 'You kept a wide shooting angle on goal.', bad: 'You shot from a tight angle with little of the goal to aim at.' },
+      { key: 'shotDist', good: 'You were at a comfortable shooting distance.', bad: 'You were too close to the line, or too far out, to shoot well.' },
+      { key: 'gkOpen', good: 'The keeper was out of position, leaving space to aim at.', bad: 'The keeper was well placed and covered your shot.' },
+      { key: 'lane', good: 'The passing lane was clear.', bad: 'The defender was close enough to reach the pass.' },
+      { key: 'defSpace', good: 'You kept your distance from the defender.', bad: 'The defender was right on top of you.' },
+      { key: 'blind', good: 'You made the run on the defender’s blind side.', bad: 'You stayed in the defender’s eyeline, easy to track.' },
+      { key: 'diagonal', good: 'Your run was nicely angled off the defender’s line.', bad: 'You lined up straight behind the defender.' },
+      { key: 'passDist', good: 'The pass was an easy, reliable distance.', bad: 'The pass was an awkward distance: too short, or too risky.' },
+      { key: 'twoVOne', good: 'You stretched the defender — they could not cover both of you.', bad: 'One defender could comfortably cover both you and the ball carrier.' }
+    ];
+
+    function explain(result) {
+      var items = [];
+      var i;
+      for (i = 0; i < FACTOR_META.length; i++) {
+        items.push({ meta: FACTOR_META[i], value: result.factors[FACTOR_META[i].key] });
+      }
+      items.sort(function (a, b) { return b.value - a.value; });
+
+      var lines = [];
+      if (result.laneBlocked) {
+        lines.push('The defender was standing in the passing lane — the ball never got to you.');
+      }
+      for (i = 0; i < 2; i++) {
+        if (items[i].value >= 0.6) lines.push(items[i].meta.good);
+      }
+      for (i = items.length - 2; i < items.length; i++) {
+        if (items[i].value < 0.5) lines.push(items[i].meta.bad);
+      }
+      if (lines.length === 0) lines.push('An average position — nothing stood out either way.');
+      return lines;
+    }
+
+    /* ================= scenario generation ================= */
+
+    function computeGrid(scn) {
+      var cells = [];
+      var hasGoal = false, hasLost = false;
+      var step = CONFIG.GRID_STEP;
+      for (var y = 2; y < WORLD_H - 1; y += step) {
+        for (var x = -WORLD_W / 2 + 1; x < WORLD_W / 2 - 1; x += step) {
+          var me = { x: x, y: y };
+          var r = evaluate(scn, me);
+          cells.push({ x: x, y: y, outcome: r.outcome });
+          if (r.outcome === 'GOAL') hasGoal = true;
+          if (r.outcome === 'LOST') hasLost = true;
+        }
+      }
+      return { cells: cells, hasGoal: hasGoal, hasLost: hasLost };
+    }
+
+    function generateScenario() {
+      var scn, grid, attempts = 0;
+      do {
+        scn = {
+          gk: { x: rand(-2, 2), y: rand(1, 3) },
+          def: { x: rand(-12, 12), y: rand(9, 22) },
+          team: null
+        };
+        do {
+          scn.team = { x: rand(-18, 18), y: rand(15, 32) };
+        } while (dist(scn.team, scn.def) < 4);
+        grid = computeGrid(scn);
+        attempts++;
+      } while (attempts < 25 && !(grid.hasGoal && grid.hasLost));
+      return { scn: scn, grid: grid };
+    }
+
+    /* ================= game state ================= */
+
+    var canvas = document.getElementById('game');
+    var ctx = canvas.getContext('2d');
+
+    var W = 0, H = 0, scale = 1;
+
+    var round = 1;
+    var score = 0;
+    var best = loadBest();
+
+    var scenario = null;
+    var grid = null;
+    var heatmapCanvas = null;
+    var me = null;
+    var state = 'place'; /* place | anim | result | over */
+    var result = null;
+
+    var animOn = loadAnimPref();
+    var zoneVisible = true;
+
+    var trail = [];
+    var animStart = 0;
+    var instantForward = false;
+    var timelineTotal = 0;
+
+    var finalBall = null, finalDefPos = null, finalGkPos = null, finalKeeperDive = 0;
+
+    var confetti = [];
+    var confettiSpawned = false;
+    var lastFrameSec = 0;
+
+    function loadBest() {
+      try {
+        var raw = window.localStorage.getItem(STORAGE_KEY);
+        var value = parseInt(raw, 10);
+        return isNaN(value) ? 0 : value;
+      } catch (e) {
+        return 0;
+      }
+    }
+    function saveBest() {
+      try { window.localStorage.setItem(STORAGE_KEY, String(best)); } catch (e) { /* ignore */ }
+    }
+    function loadAnimPref() {
+      try {
+        var raw = window.localStorage.getItem(ANIM_KEY);
+        return raw === null ? true : raw === '1';
+      } catch (e) { return true; }
+    }
+    function saveAnimPref() {
+      try { window.localStorage.setItem(ANIM_KEY, animOn ? '1' : '0'); } catch (e) { /* ignore */ }
+    }
+
+    /* ================= sizing ================= */
+
+    function sizeCanvas() {
+      var docEl = document.documentElement;
+      var availW = Math.min(docEl.clientWidth - 24, 400);
+      scale = availW / WORLD_W;
+      W = Math.round(availW);
+      H = Math.round(scale * WORLD_H);
+
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      canvas.width = Math.floor(W * dpr);
+      canvas.height = Math.floor(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      if (grid) heatmapCanvas = buildHeatmap(grid.cells);
+    }
+
+    function worldToScreen(x, y) { return { sx: W / 2 + x * scale, sy: y * scale }; }
+    function screenToWorld(sx, sy) { return { x: (sx - W / 2) / scale, y: sy / scale }; }
+
+    function buildHeatmap(cells) {
+      var hc = document.createElement('canvas');
+      hc.width = Math.max(1, W);
+      hc.height = Math.max(1, H);
+      var hctx = hc.getContext('2d');
+      var half = CONFIG.GRID_STEP / 2;
+      for (var i = 0; i < cells.length; i++) {
+        var c = cells[i];
+        if (c.outcome === 'GOAL') hctx.fillStyle = 'rgba(70, 200, 110, 0.45)';
+        else if (c.outcome === 'SAVED') hctx.fillStyle = 'rgba(255, 190, 60, 0.4)';
+        else continue;
+        var p1 = worldToScreen(c.x - half, c.y - half);
+        var p2 = worldToScreen(c.x + half, c.y + half);
+        hctx.fillRect(Math.min(p1.sx, p2.sx), Math.min(p1.sy, p2.sy), Math.abs(p2.sx - p1.sx), Math.abs(p2.sy - p1.sy));
+      }
+      return hc;
+    }
+
+    /* ================= outcome targets ================= */
+
+    function goalTarget(scn) {
+      var side = scn.gk.x < 0 ? 1 : -1;
+      return { x: side * rand(2, 2.9), y: -1.2 };
+    }
+    function saveMeetPoint(scn) {
+      return { x: clamp(scn.gk.x, -GOAL_HALF + 0.3, GOAL_HALF - 0.3), y: 0 };
+    }
+    function deflectTarget(scn, meet) {
+      var side = meet.x >= 0 ? 1 : -1;
+      return { x: meet.x + side * 3.2, y: 2.6 };
+    }
+
+    /* ================= round flow ================= */
+
+    function newRound() {
+      var gen = generateScenario();
+      scenario = gen.scn;
+      grid = gen.grid;
+      heatmapCanvas = buildHeatmap(grid.cells);
+      me = null;
+      result = null;
+      state = 'place';
+      trail = [];
+      confetti = [];
+      updateHud();
+      updateStatus();
+      renderPanel();
+    }
+
+    function newGame() {
+      round = 1;
+      score = 0;
+      newRound();
+    }
+
+    function updateHud() {
+      document.getElementById('round-value').textContent = round + '/' + CONFIG.TOTAL_ROUNDS;
+      document.getElementById('score-value').textContent = score;
+      document.getElementById('best-value').textContent = best;
+    }
+
+    function updateStatus() {
+      var el = document.getElementById('status');
+      el.textContent = (state === 'place') ? 'Tap the pitch to choose your run.' : '';
+    }
+
+    function handlePlace(clientX, clientY) {
+      if (state !== 'place') return;
+      var rect = canvas.getBoundingClientRect();
+      var world = screenToWorld(clientX - rect.left, clientY - rect.top);
+      if (world.y < 1 || world.y > WORLD_H - 1) return;
+      if (Math.abs(world.x) > WORLD_W / 2 - 0.5) return;
+      if (dist(world, scenario.gk) < 2 || dist(world, scenario.def) < 1.5 || dist(world, scenario.team) < 1.5) return;
+
+      me = world;
+      result = evaluate(scenario, me);
+      trail = [];
+      confetti = [];
+      confettiSpawned = false;
+
+      var segs = { LOST: D.DROP + D.PASS + D.FLASH, GOAL: D.DROP + D.PASS + D.SHOT + D.IMPACT, SAVED: D.DROP + D.PASS + D.SHOT + D.SAVE };
+      timelineTotal = segs[result.outcome];
+
+      state = 'anim';
+      instantForward = !animOn;
+      animStart = performance.now();
+      updateStatus();
+      renderPanel();
+    }
+
+    function finishAnimation() {
+      var as = animState(timelineTotal);
+      finalBall = as.ball;
+      finalDefPos = as.defPos;
+      finalKeeperDive = as.keeperDive || 0;
+      /* animState() never moves the keeper itself (drawScene lerps it live
+         during the dive), so bake that same lerp in here or the result
+         screen would show the keeper back on their line, undived. */
+      finalGkPos = (result.outcome === 'SAVED' && finalKeeperDive > 0)
+        ? lerpPoint(scenario.gk, saveMeetPoint(scenario), finalKeeperDive)
+        : as.gkPos;
+
+      score += POINTS[result.outcome];
+      if (score > best) { best = score; saveBest(); }
+
+      state = 'result';
+      confetti = [];
+      updateHud();
+      updateStatus();
+      renderPanel();
+    }
+
+    function nextRound() {
+      if (round >= CONFIG.TOTAL_ROUNDS) {
+        state = 'over';
+        renderPanel();
+      } else {
+        round += 1;
+        newRound();
+      }
+    }
+
+    function ratingText() {
+      var max = CONFIG.TOTAL_ROUNDS * 3;
+      if (score >= max * 0.8) return 'Clinical finishing — you nearly always found the pocket.';
+      if (score >= max * 0.5) return 'Solid movement — more good runs than bad.';
+      if (score >= max * 0.25) return 'Getting there — keep working on your angles.';
+      return 'Back to basics — watch the defender and the angle.';
+    }
+
+    function renderPanel() {
+      var panel = document.getElementById('panel');
+      if (state === 'result') {
+        var lines = explain(result);
+        var html = '<div class="card">';
+        html += '<div class="outcome outcome-' + result.outcome.toLowerCase() + '">' + OUTCOME_TITLE[result.outcome] + '</div>';
+        html += '<div class="points">+' + POINTS[result.outcome] + ' point' + (POINTS[result.outcome] === 1 ? '' : 's') + '</div>';
+        html += '<ul class="reasons">';
+        for (var i = 0; i < lines.length; i++) html += '<li>' + lines[i] + '</li>';
+        html += '</ul>';
+        html += '<button type="button" id="next-btn">' + (round >= CONFIG.TOTAL_ROUNDS ? 'See results' : 'Next scenario') + '</button>';
+        html += '</div>';
+        panel.innerHTML = html;
+        bindTap(document.getElementById('next-btn'), nextRound);
+      } else if (state === 'over') {
+        panel.innerHTML = '<div class="card">' +
+          '<div class="outcome">Final score: ' + score + ' / ' + (CONFIG.TOTAL_ROUNDS * 3) + '</div>' +
+          '<div class="points">' + ratingText() + '</div>' +
+          '<button type="button" id="again-btn">Play again</button>' +
+          '</div>';
+        bindTap(document.getElementById('again-btn'), newGame);
+      } else {
+        panel.innerHTML = '';
+      }
+    }
+
+    function bindTap(el, fn) {
+      if (!el) return;
+      el.addEventListener('click', fn);
+      el.addEventListener('touchstart', function (event) {
+        event.preventDefault();
+        fn();
+      }, { passive: false });
+    }
+
+    /* ================= animation state ================= */
+
+    function pushTrail(p) {
+      trail.push({ x: p.x, y: p.y });
+      if (trail.length > 8) trail.shift();
+    }
+
+    function spawnConfetti() {
+      var target = goalTarget(scenario);
+      var p = worldToScreen(target.x, 0);
+      var colors = ['#ffd23f', '#4ac16d', '#4A90E2', '#ff6f61', '#c56cff'];
+      confetti = [];
+      for (var i = 0; i < 32; i++) {
+        confetti.push({
+          x: p.sx, y: p.sy,
+          vx: rand(-70, 70), vy: rand(-140, -40),
+          rot: rand(0, Math.PI * 2), vrot: rand(-6, 6),
+          color: colors[i % colors.length],
+          life: 0
+        });
+      }
+    }
+
+    function updateConfetti(dt) {
+      for (var i = 0; i < confetti.length; i++) {
+        var c = confetti[i];
+        c.vy += 220 * dt;
+        c.x += c.vx * dt;
+        c.y += c.vy * dt;
+        c.rot += c.vrot * dt;
+        c.life += dt;
+      }
+    }
+
+    function animState(e) {
+      var dropT = clamp(e / D.DROP, 0, 1);
+      var out = {
+        ball: scenario.team,
+        defPos: scenario.def,
+        gkPos: scenario.gk,
+        teamOffset: { x: 0, y: 0 },
+        meOffset: { x: 0, y: 0 },
+        meScale: easeOutBack(dropT),
+        rippleT: dropT < 1 ? dropT : -1,
+        netBulge: 0,
+        laneFlash: 0,
+        screenShake: 0,
+        keeperDive: 0,
+        bigText: null,
+        floatText: null,
+        confetti: false
+      };
+      if (e <= D.DROP) return out;
+
+      var passT = clamp((e - D.DROP) / D.PASS, 0, 1);
+      var passTarget = (result.outcome === 'LOST') ? result.interceptPoint : me;
+      var ctrl = perpOffset(scenario.team, passTarget, 2.2);
+      out.ball = bezier2(scenario.team, ctrl, passTarget, passT);
+      out.teamOffset = leanOffset(scenario.team, passTarget, passT);
+
+      if (result.outcome === 'LOST') {
+        out.defPos = lerpPoint(scenario.def, result.interceptPoint, easeInOutQuad(passT));
+        var fe = e - D.DROP - D.PASS;
+        if (fe > 0) {
+          var ft = clamp(fe / D.FLASH, 0, 1);
+          out.ball = result.interceptPoint;
+          out.laneFlash = 1 - ft;
+          out.bigText = { label: OUTCOME_TITLE.LOST, t: ft, style: 'shake' };
+          out.floatText = { label: '0', t: ft, at: result.interceptPoint };
+        }
+        return out;
+      }
+
+      if (e <= D.DROP + D.PASS) return out;
+
+      var se = e - D.DROP - D.PASS;
+      var shotT = clamp(se / D.SHOT, 0, 1);
+      var shotTarget = (result.outcome === 'GOAL') ? goalTarget(scenario) : saveMeetPoint(scenario);
+      out.ball = lerpPoint(me, shotTarget, easeOutQuad(shotT));
+      out.meOffset = leanOffset(me, shotTarget, shotT);
+
+      var ie = se - D.SHOT;
+      if (ie <= 0) return out;
+
+      if (result.outcome === 'GOAL') {
+        var gp = clamp(ie / D.IMPACT, 0, 1);
+        out.ball = shotTarget;
+        out.netBulge = Math.sin(Math.min(gp * 3, 1) * Math.PI / 2) * (1 - gp * 0.6);
+        out.screenShake = Math.max(0, 1 - gp / 0.35) * 3.5;
+        out.bigText = { label: OUTCOME_TITLE.GOAL, t: gp, style: 'pop' };
+        out.floatText = { label: '+3', t: gp, at: shotTarget };
+        out.confetti = true;
+      } else {
+        var sp = clamp(ie / D.SAVE, 0, 1);
+        out.keeperDive = Math.min(1, sp / 0.5);
+        out.ball = sp < 0.45 ? shotTarget : lerpPoint(shotTarget, deflectTarget(scenario, shotTarget), easeOutQuad((sp - 0.45) / 0.55));
+        out.bigText = { label: OUTCOME_TITLE.SAVED, t: sp, style: 'wobble' };
+        out.floatText = { label: '+1', t: sp, at: shotTarget };
+      }
+      return out;
+    }
+
+    /* ================= rendering ================= */
+
+    function drawField() {
+      ctx.fillStyle = '#2f9e4f';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+      for (var s = 0; s * 4 < WORLD_H; s += 2) {
+        var y1 = worldToScreen(0, s * 4).sy, y2 = worldToScreen(0, Math.min((s + 1) * 4, WORLD_H)).sy;
+        ctx.fillRect(0, y1, W, y2 - y1);
+      }
+    }
+
+    function strokeRectWorld(xHalf, yDepth) {
+      var p1 = worldToScreen(-xHalf, 0), p2 = worldToScreen(xHalf, yDepth);
+      ctx.strokeRect(p1.sx, p1.sy, p2.sx - p1.sx, p2.sy - p1.sy);
+    }
+
+    function drawLinesAndGoal(netBulge) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.lineWidth = Math.max(1, scale * 0.045);
+      strokeRectWorld(20.16, 16.5);
+      strokeRectWorld(9.16, 5.5);
+
+      var depth = NET_DEPTH * (1 + netBulge * 0.35);
+      var postL = worldToScreen(-GOAL_HALF, 0), postR = worldToScreen(GOAL_HALF, 0);
+      var backL = worldToScreen(-GOAL_HALF, -depth), backR = worldToScreen(GOAL_HALF, -depth);
+
+      ctx.fillStyle = 'rgba(8, 18, 12, 0.55)';
+      ctx.fillRect(postL.sx, backL.sy, postR.sx - postL.sx, postL.sy - backL.sy);
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.lineWidth = 1;
+      var cols = 6, rows = 4, c, r;
+      for (c = 0; c <= cols; c++) {
+        var x = lerp(-GOAL_HALF, GOAL_HALF, c / cols);
+        var top = worldToScreen(x, 0), bot = worldToScreen(x, -depth);
+        ctx.beginPath(); ctx.moveTo(top.sx, top.sy); ctx.lineTo(bot.sx, bot.sy); ctx.stroke();
+      }
+      for (r = 0; r <= rows; r++) {
+        var y = lerp(0, -depth, r / rows);
+        var left = worldToScreen(-GOAL_HALF, y), right = worldToScreen(GOAL_HALF, y);
+        ctx.beginPath(); ctx.moveTo(left.sx, left.sy); ctx.lineTo(right.sx, right.sy); ctx.stroke();
+      }
+
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = Math.max(2, scale * 0.09);
+      ctx.beginPath(); ctx.moveTo(postL.sx, postL.sy); ctx.lineTo(postR.sx, postR.sy); ctx.stroke();
+    }
+
+    function drawLaneFlash(alpha, def, team, meTarget) {
+      if (alpha <= 0) return;
+      var a = worldToScreen(team.x, team.y);
+      var b = worldToScreen(meTarget.x, meTarget.y);
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.8;
+      ctx.strokeStyle = '#ff4d4d';
+      ctx.lineWidth = Math.max(2, scale * 0.12);
+      ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawTrail() {
+      for (var i = 0; i < trail.length; i++) {
+        var p = worldToScreen(trail[i].x, trail[i].y);
+        ctx.save();
+        ctx.globalAlpha = (i + 1) / trail.length * 0.5;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(p.sx, p.sy, Math.max(2, scale * 0.12), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function drawPlayer(pos, offset, label, color, radiusScale, bobSeed, nowSec, stretch) {
+      var p = worldToScreen(pos.x + offset.x, pos.y + offset.y);
+      var by = Math.sin(nowSec * 1.6 + bobSeed) * 1.3;
+      var r = Math.max(9, scale * 0.95) * radiusScale;
+      ctx.save();
+      ctx.translate(p.sx, p.sy + by);
+      if (stretch) {
+        ctx.rotate(stretch.rot || 0);
+        ctx.scale(stretch.sx || 1, stretch.sy || 1);
+      }
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 ' + Math.round(r * 0.8) + 'px -apple-system, BlinkMacSystemFont, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, 0, 1);
+      ctx.restore();
+    }
+
+    function drawBall(pos) {
+      var p = worldToScreen(pos.x, pos.y);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, Math.max(3, scale * 0.3), 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawRipple(t, pos) {
+      if (t < 0 || t >= 1) return;
+      var p = worldToScreen(pos.x, pos.y);
+      ctx.save();
+      ctx.globalAlpha = 1 - t;
+      ctx.strokeStyle = '#fff176';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, lerp(4, 30, t), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawConfettiParticles() {
+      for (var i = 0; i < confetti.length; i++) {
+        var c = confetti[i];
+        if (c.life > 1.2) continue;
+        ctx.save();
+        ctx.globalAlpha = clamp(1 - c.life / 1.2, 0, 1);
+        ctx.translate(c.x, c.y);
+        ctx.rotate(c.rot);
+        ctx.fillStyle = c.color;
+        ctx.fillRect(-3, -5, 6, 10);
+        ctx.restore();
+      }
+    }
+
+    function drawBigText(bt) {
+      if (!bt) return;
+      ctx.save();
+      ctx.translate(W / 2, H * 0.36);
+      var scaleF = 1, rot = 0;
+      var alpha = bt.t > 0.7 ? clamp(1 - (bt.t - 0.7) / 0.3, 0, 1) : 1;
+      if (bt.style === 'pop') {
+        scaleF = bt.t < 0.35 ? Math.max(0, easeOutBack(bt.t / 0.35)) : 1;
+      } else if (bt.style === 'wobble') {
+        rot = Math.sin(bt.t * 22) * 0.12 * (1 - bt.t);
+      } else if (bt.style === 'shake') {
+        ctx.translate(Math.sin(bt.t * 40) * 6 * (1 - bt.t), 0);
+      }
+      ctx.rotate(rot);
+      ctx.scale(scaleF, scaleF);
+      ctx.globalAlpha = clamp(alpha, 0, 1);
+      ctx.font = '800 ' + Math.round(W * 0.11) + 'px -apple-system, BlinkMacSystemFont, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = bt.style === 'pop' ? '#ffd23f' : (bt.style === 'shake' ? '#ff5b5b' : '#fff');
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+      ctx.strokeText(bt.label, 0, 0);
+      ctx.fillText(bt.label, 0, 0);
+      ctx.restore();
+    }
+
+    function drawFloatText(ft) {
+      if (!ft) return;
+      var p = worldToScreen(ft.at.x, ft.at.y);
+      var rise = easeOutQuad(ft.t) * 34;
+      var alpha = ft.t > 0.5 ? clamp(1 - (ft.t - 0.5) / 0.5, 0, 1) : 1;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = '800 16px -apple-system, BlinkMacSystemFont, system-ui, sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.fillText(ft.label, p.sx, p.sy - 16 - rise);
+      ctx.restore();
+    }
+
+    function render(tsMs) {
+      var nowSec = tsMs / 1000;
+      var dt = lastFrameSec ? clamp(nowSec - lastFrameSec, 0, 0.1) : 0;
+      lastFrameSec = nowSec;
+
+      var as = null;
+      if (state === 'anim') {
+        var elapsed = instantForward ? timelineTotal + 0.01 : (tsMs - animStart) / 1000;
+        if (elapsed >= timelineTotal) {
+          as = animState(timelineTotal);
+          drawScene(as, nowSec, dt);
+          finishAnimation();
+          window.requestAnimationFrame(render);
+          return;
+        }
+        as = animState(elapsed);
+        if (as.confetti && !confettiSpawned) { spawnConfetti(); confettiSpawned = true; }
+      }
+      if (confetti.length) updateConfetti(dt);
+
+      drawScene(as, nowSec, dt);
+      window.requestAnimationFrame(render);
+    }
+
+    function drawScene(as, nowSec) {
+      ctx.save();
+      if (as && as.screenShake > 0) {
+        ctx.translate((Math.random() * 2 - 1) * as.screenShake, (Math.random() * 2 - 1) * as.screenShake);
+      }
+
+      drawField();
+      if (zoneVisible && heatmapCanvas && (state === 'result' || state === 'over')) {
+        ctx.drawImage(heatmapCanvas, 0, 0);
+      }
+      drawLinesAndGoal(as ? as.netBulge : 0);
+
+      var defPos = scenario.def, gkPos = scenario.gk;
+      var teamOffset = { x: 0, y: 0 }, meOffset = { x: 0, y: 0 }, meScale = 1;
+      var ballPos = scenario.team;
+      var keeperDive = 0;
+
+      if (as) {
+        ballPos = as.ball;
+        defPos = as.defPos;
+        teamOffset = as.teamOffset;
+        meOffset = as.meOffset;
+        meScale = as.meScale;
+        keeperDive = as.keeperDive;
+        if (result.outcome === 'SAVED' && keeperDive > 0) {
+          gkPos = lerpPoint(scenario.gk, saveMeetPoint(scenario), keeperDive);
+        }
+        drawLaneFlash(as.laneFlash, defPos, scenario.team, result.interceptPoint);
+      } else if (state === 'result' || state === 'over') {
+        ballPos = finalBall || scenario.team;
+        defPos = finalDefPos || scenario.def;
+        gkPos = finalGkPos || scenario.gk;
+        keeperDive = finalKeeperDive;
+      }
+
+      drawTrail();
+
+      drawPlayer(defPos, { x: 0, y: 0 }, 'D', '#e05656', 1, 1.1, nowSec, null);
+      var gkStretch = keeperDive > 0 ? { rot: keeperDive * 0.9, sx: 1 + keeperDive * 0.35, sy: 1 - keeperDive * 0.25 } : null;
+      drawPlayer(gkPos, { x: 0, y: 0 }, 'GK', '#e0942b', 1, 2.3, nowSec, gkStretch);
+      drawPlayer(scenario.team, teamOffset, 'T', '#3d7fd9', 1, 0.4, nowSec, null);
+      if (me) drawPlayer(me, meOffset, 'ME', '#f2c94c', as ? Math.max(0, meScale) : 1, 3.7, nowSec, null);
+
+      drawBall(ballPos);
+
+      if (as) {
+        drawRipple(as.rippleT, me || scenario.team);
+        drawConfettiParticles();
+        drawBigText(as.bigText);
+        drawFloatText(as.floatText);
+      }
+
+      ctx.restore();
+    }
+
+    /* ================= input ================= */
+
+    canvas.addEventListener('touchstart', function (event) {
+      event.preventDefault();
+      var t = event.changedTouches[0];
+      handlePlace(t.clientX, t.clientY);
+    }, { passive: false });
+
+    canvas.addEventListener('mousedown', function (event) {
+      handlePlace(event.clientX, event.clientY);
+    });
+
+    var animBtn = document.getElementById('anim-btn');
+    var zoneBtn = document.getElementById('zone-btn');
+
+    function updateToggleLabels() {
+      animBtn.textContent = 'Anim: ' + (animOn ? 'On' : 'Off');
+      zoneBtn.textContent = 'Zone: ' + (zoneVisible ? 'On' : 'Off');
+    }
+
+    bindTapGeneric(animBtn, function () { animOn = !animOn; saveAnimPref(); updateToggleLabels(); });
+    bindTapGeneric(zoneBtn, function () { zoneVisible = !zoneVisible; updateToggleLabels(); });
+
+    function bindTapGeneric(el, fn) {
+      el.addEventListener('click', fn);
+      el.addEventListener('touchstart', function (event) { event.preventDefault(); fn(); }, { passive: false });
+    }
+
+    /* Only a resize that changes the grid should rebuild the heatmap; the
+       running scenario stays the same, sizeCanvas() already rebuilds it. */
+    function handleResize() {
+      sizeCanvas();
+    }
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') lastFrameSec = 0;
+    });
+
+    /* ================= boot ================= */
+
+    updateToggleLabels();
+    sizeCanvas();
+    newGame();
+    window.requestAnimationFrame(render);
+  </script>
+  <script src="pwa.js"></script>
+</body>
+</html>
