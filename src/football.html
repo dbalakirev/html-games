@@ -240,7 +240,10 @@
       LANE_BLOCK_DIST: 1.5,       /* defender this close to the pass line: always intercepted */
       LANE_SAFE_DIST: 5,          /* defender this far or more: lane fully clear */
 
-      GOAL_THRESHOLD: 0.68,
+      GK_ARC: 2.0,                /* metres from goal centre the keeper stands, on the line towards the runner */
+      GK_REACH: 2.0,              /* the most the keeper can shuffle while the ball is being passed */
+
+      GOAL_THRESHOLD: 0.66,
       SHOT_THRESHOLD: 0.45,
 
       GRID_STEP: 1.5,             /* metres, used for both rejection sampling and the heatmap */
@@ -347,10 +350,22 @@
       return plateauScore(me.y, CONFIG.SHOT_MIN, CONFIG.SHOT_IDEAL_LO, CONFIG.SHOT_IDEAL_HI, CONFIG.SHOT_MAX);
     }
 
-    function scoreKeeperOpen(scn, me) {
+    /* Where the keeper ends up once the runner has chosen a spot: he edges
+       towards the point on the shot line (goal centre -> runner), but can only
+       shuffle GK_REACH metres from where he started. */
+    function keeperResponse(scn, me) {
+      var len = Math.hypot(me.x, me.y) || 1;
+      var arc = Math.min(CONFIG.GK_ARC, len * 0.5);
+      var target = { x: me.x / len * arc, y: me.y / len * arc };
+      var d = dist(scn.gk, target);
+      if (d <= CONFIG.GK_REACH) return target;
+      return lerpPoint(scn.gk, target, CONFIG.GK_REACH / d);
+    }
+
+    function scoreKeeperOpen(gk, me) {
       /* small angle between "me -> keeper" and "me -> goal centre" means the
          keeper is sat right on the shot line and well positioned to save it */
-      return clamp(angleAt(me, scn.gk, GOAL_CENTER) / CONFIG.KEEPER_ANGLE_NORM, 0, 1);
+      return clamp(angleAt(me, gk, GOAL_CENTER) / CONFIG.KEEPER_ANGLE_NORM, 0, 1);
     }
 
     function scoreDefenderSpace(scn, me) {
@@ -378,11 +393,12 @@
     function evaluate(scn, me) {
       var lane = pointSegmentDist(scn.def, scn.team, me);
       var passDist = dist(scn.team, me);
+      var gk = keeperResponse(scn, me);
 
       var factors = {
         angle: scoreShootingAngle(me),
         shotDist: scoreShotDistance(me),
-        gkOpen: scoreKeeperOpen(scn, me),
+        gkOpen: scoreKeeperOpen(gk, me),
         lane: clamp((lane.dist - CONFIG.LANE_BLOCK_DIST) / (CONFIG.LANE_SAFE_DIST - CONFIG.LANE_BLOCK_DIST), 0, 1),
         defSpace: scoreDefenderSpace(scn, me),
         blind: scoreBlindSide(scn, me),
@@ -417,13 +433,13 @@
         outcome = 'LOST';
       }
 
-      return { total: total, factors: factors, outcome: outcome, laneBlocked: laneBlocked, interceptPoint: lane.point };
+      return { total: total, factors: factors, outcome: outcome, laneBlocked: laneBlocked, interceptPoint: lane.point, gk: gk };
     }
 
     var FACTOR_META = [
       { key: 'angle', good: 'You kept a wide shooting angle on goal.', bad: 'You shot from a tight angle with little of the goal to aim at.' },
       { key: 'shotDist', good: 'You were at a comfortable shooting distance.', bad: 'You were too close to the line, or too far out, to shoot well.' },
-      { key: 'gkOpen', good: 'The keeper was out of position, leaving space to aim at.', bad: 'The keeper was well placed and covered your shot.' },
+      { key: 'gkOpen', good: 'The keeper could not shuffle across in time, leaving space to aim at.', bad: 'The keeper shuffled across and covered your shot.' },
       { key: 'lane', good: 'The passing lane was clear.', bad: 'The defender was close enough to reach the pass.' },
       { key: 'defSpace', good: 'You kept your distance from the defender.', bad: 'The defender was right on top of you.' },
       { key: 'blind', good: 'You made the run on the defender’s blind side.', bad: 'You stayed in the defender’s eyeline, easy to track.' },
@@ -585,12 +601,12 @@
 
     /* ================= outcome targets ================= */
 
-    function goalTarget(scn) {
-      var side = scn.gk.x < 0 ? 1 : -1;
+    function goalTarget(gk) {
+      var side = gk.x < 0 ? 1 : -1;
       return { x: side * rand(2, 2.9), y: -1.2 };
     }
-    function saveMeetPoint(scn) {
-      return { x: clamp(scn.gk.x, -GOAL_HALF + 0.3, GOAL_HALF - 0.3), y: 0 };
+    function saveMeetPoint(gk) {
+      return { x: clamp(gk.x, -GOAL_HALF + 0.3, GOAL_HALF - 0.3), y: 0 };
     }
     function deflectTarget(scn, meet) {
       var side = meet.x >= 0 ? 1 : -1;
@@ -641,6 +657,8 @@
 
       me = world;
       result = evaluate(scenario, me);
+      /* picked once, so the ball and the confetti agree on where it went in */
+      result.goalTarget = goalTarget(result.gk);
       trail = [];
       confetti = [];
       confettiSpawned = false;
@@ -660,11 +678,11 @@
       finalBall = as.ball;
       finalDefPos = as.defPos;
       finalKeeperDive = as.keeperDive || 0;
-      /* animState() never moves the keeper itself (drawScene lerps it live
-         during the dive), so bake that same lerp in here or the result
-         screen would show the keeper back on their line, undived. */
+      /* animState() only shuffles the keeper; drawScene lerps the dive live,
+         so bake that same lerp in here or the result screen would show the
+         keeper back on his line, undived. */
       finalGkPos = (result.outcome === 'SAVED' && finalKeeperDive > 0)
-        ? lerpPoint(scenario.gk, saveMeetPoint(scenario), finalKeeperDive)
+        ? lerpPoint(result.gk, saveMeetPoint(result.gk), finalKeeperDive)
         : as.gkPos;
 
       score += POINTS[result.outcome];
@@ -738,8 +756,7 @@
     }
 
     function spawnConfetti() {
-      var target = goalTarget(scenario);
-      var p = worldToScreen(target.x, 0);
+      var p = worldToScreen(result.goalTarget.x, 0);
       var colors = ['#ffd23f', '#4ac16d', '#4A90E2', '#ff6f61', '#c56cff'];
       confetti = [];
       for (var i = 0; i < 32; i++) {
@@ -782,6 +799,9 @@
         floatText: null,
         confetti: false
       };
+      /* the keeper edges across while the runner settles and the pass travels */
+      out.gkPos = lerpPoint(scenario.gk, result.gk, easeInOutQuad(clamp(e / (D.DROP + D.PASS), 0, 1)));
+
       if (e <= D.DROP) return out;
 
       var passT = clamp((e - D.DROP) / D.PASS, 0, 1);
@@ -807,7 +827,7 @@
 
       var se = e - D.DROP - D.PASS;
       var shotT = clamp(se / D.SHOT, 0, 1);
-      var shotTarget = (result.outcome === 'GOAL') ? goalTarget(scenario) : saveMeetPoint(scenario);
+      var shotTarget = (result.outcome === 'GOAL') ? result.goalTarget : saveMeetPoint(result.gk);
       out.ball = lerpPoint(me, shotTarget, easeOutQuad(shotT));
       out.meOffset = leanOffset(me, shotTarget, shotT);
 
@@ -1060,8 +1080,9 @@
         meOffset = as.meOffset;
         meScale = as.meScale;
         keeperDive = as.keeperDive;
+        gkPos = as.gkPos;
         if (result.outcome === 'SAVED' && keeperDive > 0) {
-          gkPos = lerpPoint(scenario.gk, saveMeetPoint(scenario), keeperDive);
+          gkPos = lerpPoint(result.gk, saveMeetPoint(result.gk), keeperDive);
         }
         drawLaneFlash(as.laneFlash, defPos, scenario.team, result.interceptPoint);
       } else if (state === 'result' || state === 'over') {
@@ -1072,6 +1093,19 @@
       }
 
       drawTrail();
+
+      /* faint ring where the keeper started, so the shuffle is easy to read */
+      if (me && dist(scenario.gk, gkPos) > 0.3) {
+        var ghost = worldToScreen(scenario.gk.x, scenario.gk.y);
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = '#e0942b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(ghost.sx, ghost.sy, Math.max(9, scale * 0.95), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
 
       drawPlayer(defPos, { x: 0, y: 0 }, 'D', '#e05656', 1, 1.1, nowSec, null);
       var gkStretch = keeperDive > 0 ? { rot: keeperDive * 0.9, sx: 1 + keeperDive * 0.35, sy: 1 - keeperDive * 0.25 } : null;
